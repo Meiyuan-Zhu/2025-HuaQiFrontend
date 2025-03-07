@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import VChart from "vue-echarts";
+
 import { ref, reactive } from 'vue'
 import { getCurrencyFlag } from "../../utils/index";
 
@@ -28,11 +30,75 @@ const currencyList = [
   },
 ]
 
+//选择货币对的回调函数
 const selectCurrency = (key: string) => {
   currencyPair.from = currencyList[key].from
   currencyPair.to = currencyList[key].to
-  console.log(currencyPair);
+  //console.log(currencyPair);
 }
+
+//当前模型
+const model = ref('模型1')
+
+//可供选择的模型
+const modelList = [
+  '模型1',
+  '模型2',
+  '模型3',
+  '模型4',
+]
+
+//当前预测周期
+const predictionPeriod = ref('1周')
+
+//可供选择的预测周期
+const predictionPeriodList = [
+  '1周',
+  '1月',
+  '1年',
+]
+
+//表格option
+const chartOption = ref({
+  xAxis: {
+    type: 'category',
+    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  },
+  yAxis: {
+    type: 'value'
+  },
+  series: [
+    {
+      data: [150, 230, 224, 218, 135, 147, 260],
+      type: 'line'
+    }
+  ]
+})
+
+//大模型回复的文本(写死的)
+const reportText = ref("123456890abcdefghijk123456890abcdefghijk123456890abcdefghijk")
+
+//文本框展示的文本
+const textOutput = ref("")
+
+//生成AI报告的流式数据
+const printLine = async () => {
+  if(textOutput.value.length >= reportText.value.length) {
+    return
+  }else{
+    setTimeout(() => {
+      textOutput.value += reportText.value[textOutput.value.length]
+      printLine()
+    }, 50);
+  }
+}
+
+const generateReport = async () => {  
+  //调用后端接口，生成AI报告
+  //reportText.value = await getReport()
+  printLine()
+}
+
 
 </script>
 
@@ -66,9 +132,10 @@ const selectCurrency = (key: string) => {
       <!-- 主要内容 -->
       <el-main class="main-board">
         <el-container>
-          <el-header>
+          <!-- 货币对 预测模型 预测周期 -->
+          <el-header style="height: 10%;">
             <el-row :gutter="20">
-              <el-col :span="6" t>
+              <el-col :span="4" style="display: flex;font-size: 20px;">
                 <span :class="`fi fi-${getCurrencyFlag(currencyPair.from)}`" class="currency-flag"></span>
                 <span class="separator">/</span>
                 <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
@@ -77,17 +144,46 @@ const selectCurrency = (key: string) => {
                 <span class="separator">/</span>
                 <span>{{currencyPair.to}}</span>
               </el-col>
-              <el-col :span="6">
-                <el-input v-model="input" placeholder="请输入内容"></el-input>
+
+              <el-col :span="1"></el-col>
+
+              <el-col :span="4">
+                <el-form-item label="预测模型" class="form-item">
+                  <el-select v-model="model" placeholder="请选择预测模型">
+                    <el-option v-for="item in modelList" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="11"></el-col>
+
+              <el-col :span="4">
+                <el-form-item label="预测周期" class="form-item">
+                  <el-select v-model="predictionPeriod" placeholder="请选择预测周期">
+                    <el-option v-for="item in predictionPeriodList" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </el-form-item>
               </el-col>
             </el-row>
           </el-header>
 
-          <el-main>
-
+          <!-- 图表 -->
+          <el-main style="height: 50%;">
+            <v-chart class="chart" :option="chartOption" />
           </el-main>
 
-          <el-footer>
+          <el-divider></el-divider>
+
+          <!-- 大模型 -->
+          <el-footer style="height: 30%;">
+            <el-row :gutter="40">
+              <el-col :span="21">
+                <el-input class="textArea" v-model="textOutput" type="textarea" :autosize="{ minRows: 8, maxRows: 8 }" resize="none" readonly />
+              </el-col>
+              <el-col :span="2">
+                <el-button type="success" @click="generateReport">生成AI预测报告</el-button>
+              </el-col>
+            </el-row>
 
           </el-footer>
         </el-container>
@@ -134,4 +230,14 @@ const selectCurrency = (key: string) => {
 .main-board {
   
 }
+
+:deep(.form-item .el-form-item__label) {
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+}
+
+.chart{
+  height: 480px;
+}
+
 </style>
