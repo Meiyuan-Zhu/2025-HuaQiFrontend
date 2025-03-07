@@ -67,7 +67,20 @@ const selectCurrency = (key: string) => {
       <el-main class="main-board">
         <el-container>
           <el-header>
-
+            <el-row :gutter="20">
+              <el-col :span="6" t>
+                <span :class="`fi fi-${getCurrencyFlag(currencyPair.from)}`" class="currency-flag"></span>
+                <span class="separator">/</span>
+                <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
+                <span style="padding: 2px;"></span>
+                <span>{{currencyPair.from}}</span>
+                <span class="separator">/</span>
+                <span>{{currencyPair.to}}</span>
+              </el-col>
+              <el-col :span="6">
+                <el-input v-model="input" placeholder="请输入内容"></el-input>
+              </el-col>
+            </el-row>
           </el-header>
 
           <el-main>
@@ -75,7 +88,7 @@ const selectCurrency = (key: string) => {
           </el-main>
 
           <el-footer>
-            
+
           </el-footer>
         </el-container>
       </el-main>

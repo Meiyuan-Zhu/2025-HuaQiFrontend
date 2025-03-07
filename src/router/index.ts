@@ -4,6 +4,10 @@ const router = createRouter({
     history: createWebHashHistory(),
     routes: [
         {
+            path: '/',
+            redirect: '/homepage'
+        },
+        {
             path: '/login',
             component: () => import('../views/user/Login.vue'),
             meta: {title: '用户登录'}
