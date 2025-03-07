@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import Header from "../components/Header.vue"
-import Aside from "../components/Aside.vue"
+import Menu from "../components/Menu.vue"
 </script>
 
 
 <template>
-  <Header/>
+  <Menu/>
   <el-container style="height: 100%;">
-    <Aside/>
     <router-view />
   </el-container>
 </template>

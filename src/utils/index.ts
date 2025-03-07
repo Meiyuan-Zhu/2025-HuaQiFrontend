@@ -17,5 +17,20 @@ export function parseTime(time: string) {
     return times[0] + " " + times[1]
 }
 
-
+//获取对应的国旗
+export const getCurrencyFlag = (currency: string): string => {
+    const currencyToCountry: Record<string, string> = {
+      USD: "us",
+      EUR: "eu",
+      GBP: "gb",
+      JPY: "jp",
+      CNY: "cn",
+      HKD: "hk",
+      AUD: "au",
+      CAD: "ca",
+      SGD: "sg",
+      CHF: "ch",
+    };
+    return currencyToCountry[currency] || "cn";
+  };
 

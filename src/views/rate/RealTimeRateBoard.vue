@@ -7,6 +7,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import { GridComponent, TooltipComponent, TitleComponent, LegendComponent } from "echarts/components";
 import VChart from "vue-echarts";
 
+import { getCurrencyFlag } from "../../utils/index";
+
 use([
   CanvasRenderer,
   LineChart,
@@ -201,23 +203,6 @@ const chartOption = computed(() => ({
   ],
 }));
 
-// 方法
-const getCurrencyFlag = (currency: string): string => {
-  const currencyToCountry: Record<string, string> = {
-    USD: "us",
-    EUR: "eu",
-    GBP: "gb",
-    JPY: "jp",
-    CNY: "cn",
-    HKD: "hk",
-    AUD: "au",
-    CAD: "ca",
-    SGD: "sg",
-    CHF: "ch",
-  };
-  return currencyToCountry[currency] || "un";
-};
-
 const showTrend = (row: RateItem) => {
   fromCurrency.value = row.currency;
   toCurrency.value = baseCurrency.value;
@@ -286,7 +271,7 @@ watchEffect(() => {
           <div class="currency-selector">
             <el-select v-model="baseCurrency">
               <el-option v-for="currency in availableCurrencies" :key="currency" :value="currency">
-                <div style="align-items: center;">
+                <div style="align-items: center;display: flex;">
                     <span :class="`fi fi-${getCurrencyFlag(currency)}`" class="currency-flag"></span>
                     <span>{{ currency }}</span>
                 </div>
