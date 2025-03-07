@@ -10,7 +10,7 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts } from "@element-plus/i
         mode="horizontal"
         :router="true"
       >
-        <el-menu-item index="/">
+        <el-menu-item index="/homepage">
           <template #title>
             <el-icon><HomeFilled /></el-icon>
             <span>首页</span>

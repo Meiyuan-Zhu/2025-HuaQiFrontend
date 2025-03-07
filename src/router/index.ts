@@ -4,10 +4,6 @@ const router = createRouter({
     history: createWebHashHistory(),
     routes: [
         {
-            path: '/',
-            redirect: '/home',
-        }, 
-        {
             path: '/login',
             component: () => import('../views/user/Login.vue'),
             meta: {title: '用户登录'}
@@ -18,10 +14,13 @@ const router = createRouter({
             meta: {title: '用户注册'}
         }, 
         {
-            path: '/home',
+            path: '/',
             component: () => import('../views/Home.vue'),
-            meta: {title: '主页'},
             children: [
+                {
+                    path: '/homepage',
+                    component: () => import('../views/HomePage.vue'),
+                },
                 {
                     path: '/realtime',
                     component: () => import('../views/rate/RealTimeRateBoard.vue'),
