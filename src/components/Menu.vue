@@ -22,7 +22,7 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts } from "@element-plus/i
           <span>实时汇率</span>
         </el-menu-item>
 
-        <el-menu-item index="4">
+        <el-menu-item index="/backtest">
           <el-icon><Histogram /></el-icon>
           <span>汇率回测</span>
         </el-menu-item>
