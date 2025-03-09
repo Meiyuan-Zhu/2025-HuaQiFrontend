@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import VChart from "vue-echarts";
-
-import { ref, reactive } from 'vue'
+import * as echarts from 'echarts'
+import { ref, reactive, watch, onMounted, nextTick } from 'vue'
 import { getCurrencyFlag } from "../../utils/index";
 
 //当前货币对
@@ -10,28 +9,16 @@ const currencyPair = reactive({
   to: 'USD'
 })
 
-//可供选择的货币对
+// 可供选择的货币对
 const currencyList = [
-  {
-    from: 'CNY',
-    to: 'USD'
-  },
-  {
-    from: 'CNY',
-    to: 'EUR'
-  },
-  {
-    from: 'CNY',
-    to: 'JPY'
-  },
-  {
-    from: 'CNY',
-    to: 'AUD'
-  },
+  { from: 'CNY', to: 'USD' },
+  { from: 'CNY', to: 'EUR' },
+  { from: 'CNY', to: 'JPY' },
+  { from: 'CNY', to: 'AUD' },
 ]
 
 //选择货币对的回调函数
-const selectCurrency = (key: string) => {
+const selectCurrency = (key: number) => {
   currencyPair.from = currencyList[key].from
   currencyPair.to = currencyList[key].to
   //console.log(currencyPair);
@@ -41,42 +28,70 @@ const selectCurrency = (key: string) => {
 const model = ref('模型1')
 
 //可供选择的模型
-const modelList = [
-  '模型1',
-  '模型2',
-  '模型3',
-  '模型4',
-]
+const modelList = ['模型1', '模型2', '模型3', '模型4',]
 
 //当前预测周期
 const predictionPeriod = ref('1周')
 
 //可供选择的预测周期
-const predictionPeriodList = [
-  '1周',
-  '1月',
-  '1年',
-]
+const predictionPeriodList = [ '1周', '1月', '1季',]
+// 根据时间范围返回对应数据点数量
+const getCountFromTimeRange = (timeRange: string) => {
+  switch (timeRange) {
+    case "1周": return 7;
+    case "1月": return 30;
+    case "1季": return 90;
+    default: return 7;
+  }
+}
 
-//表格option
-const chartOption = ref({
-  xAxis: {
-    type: 'category',
-    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  },
-  yAxis: {
-    type: 'value'
-  },
-  series: [
-    {
-      data: [150, 230, 224, 218, 135, 147, 260],
-      type: 'line'
-    }
-  ]
-})
+// ECharts K线图
+const chartRef = ref<HTMLElement | null>(null);
+let chartInstance: echarts.ECharts | null = null;
+const initChart = () => {
+  if (chartRef.value) {
+    chartInstance = echarts.init(chartRef.value);
+    updateChart();
+  }
+};
+const updateChart = () => {
+  if (!chartInstance) return;
+
+  const count = getCountFromTimeRange(predictionPeriod.value);
+  const dates = [];
+  const dataPred = [];  
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
+    dates.push(`${date.getMonth()+1}-${date.getDate()}`);
+    dataPred.push((Math.random() * 10 + 90).toFixed(2));
+  }
+  const option = {
+    tooltip: { trigger: 'axis' },
+    legend: { data: [ '预测汇率' ] },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: '预测汇率',
+        type: 'line',
+        data: dataPred,
+        smooth: true
+      }
+    ]
+  };
+  chartInstance.setOption(option);
+};
+watch([currencyPair, predictionPeriod], () => {
+  nextTick(() => { updateChart(); });
+});
+onMounted(() => { initChart(); });
+
+//是否展示AI报告
+const showAIReport = ref(false);
 
 //大模型回复的文本(写死的)
-const reportText = ref("123456890abcdefghijk123456890abcdefghijk123456890abcdefghijk")
+const reportText = ref("这是基于本项目AI模型生成的汇率预测报告,预测结果仅供参考。\n你的预计收益是100美元。\n你需要在明天卖出。")
 
 //文本框展示的文本
 const textOutput = ref("")
@@ -94,11 +109,11 @@ const printLine = async () => {
 }
 
 const generateReport = async () => {  
+  showAIReport.value = true
   //调用后端接口，生成AI报告
   //reportText.value = await getReport()
   printLine()
 }
-
 
 </script>
 
@@ -169,7 +184,7 @@ const generateReport = async () => {
 
           <!-- 图表 -->
           <el-main style="height: 50%;">
-            <v-chart class="chart" :option="chartOption" />
+            <div ref="chartRef" class="kline-chart"></div>
           </el-main>
 
           <el-divider></el-divider>
@@ -177,11 +192,11 @@ const generateReport = async () => {
           <!-- 大模型 -->
           <el-footer style="height: 30%;">
             <el-row :gutter="40">
-              <el-col :span="21">
-                <el-input class="textArea" v-model="textOutput" type="textarea" :autosize="{ minRows: 8, maxRows: 8 }" resize="none" readonly />
-              </el-col>
-              <el-col :span="2">
-                <el-button type="success" @click="generateReport">生成AI预测报告</el-button>
+              <el-col :span="24">
+                <button v-if="!showAIReport" class="showReportButton" @click="generateReport">
+                  生成AI报告
+                </button>
+                <el-input v-else class="textArea" v-model="textOutput" type="textarea" :autosize="{ minRows: 8, maxRows: 8 }" resize="none" readonly input-style="font-size: 16px;font-weight:bold;letter-spacing:1px; font-family: Arial, sans-serif;background-color:#00aaff10;" />
               </el-col>
             </el-row>
 
@@ -196,6 +211,7 @@ const generateReport = async () => {
 
 <style scoped>
 .prediction-board {
+  background: #00aaff89;
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -236,8 +252,61 @@ const generateReport = async () => {
   font-weight: bold;
 }
 
-.chart{
-  height: 480px;
+.kline-chart {
+  width: 100%;
+  height: 450px;
 }
 
+.textArea {
+  width: 100%;
+  height: 100%;
+  margin-top: 10px; 
+}
+
+</style>
+
+<style scoped>
+  button {
+    align-self: center;
+    --width: 75vw; 
+    --timing: 5s;
+    border: 0;
+    width: var(--width);
+    height: 22vh;
+    padding-block: 1em;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1em;
+    background: rgb(162, 203, 247);
+    transition: all 0.2s;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-image: linear-gradient(
+      to right,
+      rgb(250, 82, 82, 0.6),
+      rgba(250, 82, 82, 0.6) 16.65%,
+      rgb(190, 75, 219, 0.6) 16.65%,
+      rgb(190, 75, 219, 0.6) 33.3%,
+      rgb(76, 110, 245, 0.6) 33.3%,
+      rgb(76, 110, 245, 0.6) 49.95%,
+      rgb(64, 192, 87, 0.6) 49.95%,
+      rgb(64, 192, 87, 0.6) 66.6%,
+      rgb(250, 176, 5, 0.6) 66.6%,
+      rgb(250, 176, 5, 0.6) 83.25%,
+      rgb(253, 126, 20, 0.6) 83.25%,
+      rgb(253, 126, 20, 0.6) 100%,
+      rgb(250, 82, 82, 0.6) 100%
+    );
+    animation: var(--timing) linear dance6123 infinite;
+    transform: scale(1.01) translateY(-1px);
+  }
+
+  @keyframes dance6123 {
+    to {
+      background-position: var(--width);
+    }
+  }
 </style>
