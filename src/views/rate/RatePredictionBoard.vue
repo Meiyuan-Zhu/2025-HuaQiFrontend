@@ -1,7 +1,10 @@
-<script setup lang="ts">
+<script setup lang="ts" >
 import * as echarts from 'echarts'
 import { ref, reactive, watch, onMounted, nextTick } from 'vue'
 import { getCurrencyFlag } from "../../utils/index";
+import { Download } from "@element-plus/icons-vue"   //图标
+import * as jspdf from 'jspdf';
+import "../../assets/cnfont";
 
 //当前货币对
 const currencyPair = reactive({
@@ -17,12 +20,18 @@ const currencyList = [
   { from: 'CNY', to: 'AUD' },
 ]
 
-//选择货币对的回调函数
-const selectCurrency = (key: number) => {
-  currencyPair.from = currencyList[key].from
-  currencyPair.to = currencyList[key].to
-  //console.log(currencyPair);
+// 选择货币对的回调函数
+const selectedCurrency = ref(`${currencyPair.from}/${currencyPair.to}`);
+const selectCurrency = (value: string) => {
+  const [from, to] = value.split('/');
+  currencyPair.from = from;
+  currencyPair.to = to;
+  console.log('选中的货币对：', currencyPair);
 }
+watch(currencyPair, () => {
+  selectedCurrency.value = `${currencyPair.from}/${currencyPair.to}`;
+});
+
 
 //当前模型
 const model = ref('模型1')
@@ -99,6 +108,7 @@ const textOutput = ref("")
 //生成AI报告的流式数据
 const printLine = async () => {
   if(textOutput.value.length >= reportText.value.length) {
+
     return
   }else{
     setTimeout(() => {
@@ -110,9 +120,51 @@ const printLine = async () => {
 
 const generateReport = async () => {  
   showAIReport.value = true
+  const echart = document.getElementById("echart")
+  if(echart){
+    echart.style.height = "420px";
+  } 
   //调用后端接口，生成AI报告
   //reportText.value = await getReport()
   printLine()
+}
+
+const closeReport = () => {
+  const echart = document.getElementById("echart")
+  if(echart){
+    showAIReport.value = false
+    echart.style.height = "700px";
+  } 
+}
+
+const downloadReport = () => {
+  //将reportText字符串文本转化成pdf并下载
+  const content = reportText.value;
+  const doc = new jspdf.jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margins = { left: 10, top: 10, bottom: 10 };
+  const maxWidth = pageWidth - margins.left * 2;
+  const filename = "AI报告.pdf";
+
+  doc.setFont("cnfont");
+
+  // 分割文本为适合宽度的行数组
+  const lines = doc.splitTextToSize(content, maxWidth);
+
+  let yPos = margins.top;
+  const lineHeight = 10; // 根据字体大小调整行高
+
+  lines.forEach((line: string | string[]) => {
+      // 检查是否需要分页
+      if (yPos > doc.internal.pageSize.getHeight() - margins.bottom) {
+          doc.addPage();
+          yPos = margins.top;
+      }
+      doc.text(line, margins.left, yPos);
+      yPos += lineHeight;
+  });
+
+  doc.save(filename); // 触发下载
 }
 
 </script>
@@ -121,48 +173,46 @@ const generateReport = async () => {
 <template>
   <el-main>
     <el-container class='prediction-board'>
-      <!-- 侧边栏 -->
-      <el-aside class="sidebar">
-
-        <h1 style="text-align: center;font-size: 20px;">汇率预测</h1>
-
-        <el-divider />
-
-        <el-menu class="currency-menu" default-active="1" mode="vertical" @select="selectCurrency" active-text-color="#3875ed" background-color="#0d00ff00" >
-
-          <el-menu-item v-for="(item, index) in currencyList" :index="index" >
-            <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
-            <span class="separator">/</span>
-            <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
-            <span style="padding: 2px;"></span>
-            <span>{{item.from}}</span>
-            <span class="separator">/</span>
-            <span>{{item.to}}</span>
-          </el-menu-item>
-
-        </el-menu>
-
-      </el-aside>
 
       <!-- 主要内容 -->
       <el-main class="main-board">
-        <el-container>
+        <el-container style="display: flex;">
           <!-- 货币对 预测模型 预测周期 -->
           <el-header style="height: 10%;">
-            <el-row :gutter="20">
-              <el-col :span="4" style="display: flex;font-size: 20px;">
+            <el-row :gutter="20" justify="space-beetween">
+              <el-col :span="4">
+                <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
+              </el-col>
+
+              <el-col :span="2" style="display: flex;font-size: 20px;">
                 <span :class="`fi fi-${getCurrencyFlag(currencyPair.from)}`" class="currency-flag"></span>
                 <span class="separator">/</span>
                 <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
-                <span style="padding: 2px;"></span>
-                <span>{{currencyPair.from}}</span>
-                <span class="separator">/</span>
-                <span>{{currencyPair.to}}</span>
               </el-col>
 
-              <el-col :span="1"></el-col>
+              <el-col :span="2">
+                <el-select v-model="selectedCurrency" placeholder="选择货币对" @change="selectCurrency">
+                  <el-option
+                    v-for="(item, index) in currencyList"
+                    :key="index"
+                    :label="`${item.from}/${item.to}`"
+                    :value="`${item.from}/${item.to}`">
+                    <template #default="{ label }">
+                      <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
+                      <span class="separator">/</span>
+                      <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
+                      <span style="padding: 2px;"></span>
+                      <span>{{ item.from }}</span>
+                      <span class="separator">/</span>
+                      <span>{{ item.to }}</span>
+                    </template>
+                  </el-option>
+                </el-select>
+              </el-col>
 
-              <el-col :span="4">
+              <el-col :span="4"></el-col>
+
+              <el-col :span="3">
                 <el-form-item label="预测模型" class="form-item">
                   <el-select v-model="model" placeholder="请选择预测模型">
                     <el-option v-for="item in modelList" :key="item" :label="item" :value="item" />
@@ -170,37 +220,52 @@ const generateReport = async () => {
                 </el-form-item>
               </el-col>
 
-              <el-col :span="11"></el-col>
+              <el-col :span="1"></el-col>
 
-              <el-col :span="4">
+              <el-col :span="3">
                 <el-form-item label="预测周期" class="form-item">
                   <el-select v-model="predictionPeriod" placeholder="请选择预测周期">
                     <el-option v-for="item in predictionPeriodList" :key="item" :label="item" :value="item" />
                   </el-select>
                 </el-form-item>
               </el-col>
+
+              <el-col :span="2"></el-col>
+
+              <el-col :span="3">
+                <el-button v-if="!showAIReport" @click="generateReport" type="primary" color="#626aef">
+                  生成AI报告
+                </el-button>
+              </el-col>
+
             </el-row>
           </el-header>
 
           <!-- 图表 -->
-          <el-main style="height: 50%;">
-            <div ref="chartRef" class="kline-chart"></div>
+          <el-main style="height:90%;">
+            <div id="echart" ref="chartRef" class="kline-chart"></div>
           </el-main>
 
-          <el-divider></el-divider>
+          <el-divider v-if="showAIReport"></el-divider>
 
           <!-- 大模型 -->
-          <el-footer style="height: 30%;">
-            <el-row :gutter="40">
-              <el-col :span="24">
-                <button v-if="!showAIReport" class="showReportButton" @click="generateReport">
-                  生成AI报告
-                </button>
-                <el-input v-else class="textArea" v-model="textOutput" type="textarea" :autosize="{ minRows: 8, maxRows: 8 }" resize="none" readonly input-style="font-size: 16px;font-weight:bold;letter-spacing:1px; font-family: Arial, sans-serif;background-color:#00aaff10;" />
+          <el-footer style="height: 30%;" v-if="showAIReport">
+            <el-row :gutter="60">
+              <el-col :span="4">
+                <el-button @click="downloadReport" type="primary">
+                  <el-icon><Download/></el-icon> 下载报告
+                </el-button>
               </el-col>
+              <el-col :span="18"></el-col>
+              <el-col :span="2">
+                <el-button @click="closeReport" type="primary">
+                  关闭
+                </el-button>
+              </el-col>                
             </el-row>
-
+            <el-input class="textArea" v-model="textOutput" type="textarea" :autosize="{ minRows: 8, maxRows: 8 }" resize="none" readonly input-style="font-size: 16px;font-weight:bold;letter-spacing:1px; font-family: Arial, sans-serif;background-color:#00aaff10;" />
           </el-footer>
+
         </el-container>
       </el-main>
 
@@ -253,9 +318,17 @@ const generateReport = async () => {
 }
 
 .kline-chart {
-  width: 100%;
-  height: 450px;
+  width: 90%;
+  height: 700px;
+  margin: 0 auto;
 }
+
+/* .showReportButton {
+  position: fixed;
+  right: 0%;
+  bottom: 10%;
+  z-index: 999;
+} */
 
 .textArea {
   width: 100%;
@@ -263,50 +336,4 @@ const generateReport = async () => {
   margin-top: 10px; 
 }
 
-</style>
-
-<style scoped>
-  button {
-    align-self: center;
-    --width: 75vw; 
-    --timing: 5s;
-    border: 0;
-    width: var(--width);
-    height: 22vh;
-    padding-block: 1em;
-    color: #fff;
-    font-weight: bold;
-    font-size: 1em;
-    background: rgb(162, 203, 247);
-    transition: all 0.2s;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background-image: linear-gradient(
-      to right,
-      rgb(250, 82, 82, 0.6),
-      rgba(250, 82, 82, 0.6) 16.65%,
-      rgb(190, 75, 219, 0.6) 16.65%,
-      rgb(190, 75, 219, 0.6) 33.3%,
-      rgb(76, 110, 245, 0.6) 33.3%,
-      rgb(76, 110, 245, 0.6) 49.95%,
-      rgb(64, 192, 87, 0.6) 49.95%,
-      rgb(64, 192, 87, 0.6) 66.6%,
-      rgb(250, 176, 5, 0.6) 66.6%,
-      rgb(250, 176, 5, 0.6) 83.25%,
-      rgb(253, 126, 20, 0.6) 83.25%,
-      rgb(253, 126, 20, 0.6) 100%,
-      rgb(250, 82, 82, 0.6) 100%
-    );
-    animation: var(--timing) linear dance6123 infinite;
-    transform: scale(1.01) translateY(-1px);
-  }
-
-  @keyframes dance6123 {
-    to {
-      background-position: var(--width);
-    }
-  }
 </style>

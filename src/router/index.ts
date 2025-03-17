@@ -36,6 +36,10 @@ const router = createRouter({
                 {
                     path: '/backtest',
                     component: () => import('../views/rate/RateBacktest.vue'),
+                },
+                {
+                    path: '/interpret',
+                    component: () => import('../views/rate/Interpret.vue'),
                 }
             ]
         },
