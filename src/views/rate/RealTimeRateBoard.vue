@@ -2,87 +2,41 @@
   <el-main class="rate-container">
     <!-- 顶部：基准货币选择、搜索框 -->
     <el-header class="header">
-      <el-row :gutter="5" justify="space-between">
-        <!-- 标题 -->
-        <el-col :span="4">
-          <h1 style="margin: auto;">今日汇率 - 基准货币</h1>
-        </el-col>
-
-        <!-- 基准货币选择 -->
-        <el-col :span="3">
-          <el-select v-model="baseCurrency">
-            <el-option
-              v-for="currency in availableCurrencies"
-              :key="currency"
-              :value="currency"
-            >
-              <div style="align-items: center;display: flex;">
-                <span :class="`fi fi-${getCurrencyFlag(currency)}`" class="currency-flag"></span>
-                <span>{{ currency }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-col>
-
-        <!-- 占位 -->
-        <el-col :span="8"></el-col>
-
-        <!-- 搜索框 -->
-        <el-col :span="8" class="search-col">
-          <el-input
-            v-model="searchQuery"
-            placeholder="搜索"
-            clearable
-            @clear="handleSearch"
-            @keyup.enter="handleSearch"
-          >
-            <template #append>
-              <el-button @click="handleSearch">搜索</el-button>
-            </template>
-          </el-input>
-        </el-col>
-      </el-row>
+      <h1 class="page-title">今日汇率</h1>
     </el-header>
 
     <!-- 卡片列表布局：替换表格 -->
     <div class="card-list">
-      <el-row :gutter="20">
-        <el-col
-          v-for="item in extendedRates"
-          :key="item.id"
-          :span="8"  
-        >
           <!-- 单个汇率卡片（点击可查看趋势） -->
-          <div class="exact-card" @click="showTrend(item)">
+          <div class="exact-card"
+        v-for="item in extendedRates"
+        :key="item.id"
+        @click="showTrend(item)">
             <div class="card-content">
-              <!-- 左边：货币代码、中文货币名 -->
-               <div class ="left-part">
+              <!-- 左边：货币代码、中文货币名、日期 -->
+              <div class="left-part">
                 <div class="top-line">
                   <span class="big-currency">{{ item.currency }}</span>
-                
                 </div>
-
                 <div class="zh-currency">{{ currencyZhMap[item.currency] }}</div>
                 <span class="date">{{ item.updateTime }}</span>
-               </div>
+              </div>
 
               <!-- 右边：买入价、卖出价、中间价 -->
               <div class="right-part">
-                <span class="big-diff">{{ item.diffVal }}</span>
+                <div class="diff-row">
+                  <span class="big-diff">{{ item.diffVal }}</span>
                   <span :class="item.isUp ? 'arrow-up' : 'arrow-down'">
-                    {{ item.isUp ? '▲' : '▼' }}
+                    {{ item.isUp ? '⬆' : '⬇' }}
                   </span>
+                </div>
+                
                 <div class="price-line">买入价： {{  item.buy  }}</div>
                 <div class="price-line">卖出价： {{  item.sell  }}</div>
-                <div class="bottom-line">
-                  
-                  <span class="mid-price">中间价： {{ item.mid }}</span>
-                </div>
+                <div class="price-line">中间价： {{  item.mid  }}</div>
               </div>
             </div>
           </div>
-        </el-col>
-      </el-row>
     </div>
 
     <!-- 分页 -->
@@ -200,49 +154,49 @@ const rateList = ref<RateItem[]>([
     currency: "USD",
     fromRate: 0.1372,
     toRate: 7.2884,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 2,
     currency: "HKD",
     fromRate: 1.06879,
     toRate: 0.93564,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 3,
     currency: "EUR",
     fromRate: 0.1265,
     toRate: 7.9051,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 4,
     currency: "GBP",
     fromRate: 0.1082,
     toRate: 9.2421,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 5,
     currency: "JPY",
     fromRate: 20.3451,
     toRate: 0.0491,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 6,
     currency: "AUD",
     fromRate: 0.2089,
     toRate: 4.7867,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 7,
     currency: "CAD",
     fromRate: 0.1851,
     toRate: 5.4025,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
   {
     id: 8,
@@ -256,7 +210,7 @@ const rateList = ref<RateItem[]>([
     currency: "CHF",
     fromRate: 0.1189,
     toRate: 8.4104,
-    updateTime: "2025.03.11",
+    updateTime: "2025-03-11",
   },
 ]);
 
@@ -406,6 +360,10 @@ function generateMockTrendData(): TrendDataItem[] {
 /* 卡片列表区域 */
 .card-list {
   margin-top: 20px;
+  margin-left:20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap:30px;
 }
 
 /* 分页 */
@@ -452,7 +410,14 @@ function generateMockTrendData(): TrendDataItem[] {
 .right-part {
   display: flex;
   flex-direction: column;
-  text-align: right; /* 如果想让右侧文字靠右 */
+  text-align: right; 
+}
+
+.diff-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  margin-bottom: 10px;
 }
 
 /* 第一行：USD 7.15 ▲ */
@@ -460,6 +425,7 @@ function generateMockTrendData(): TrendDataItem[] {
   display: flex;
   align-items: baseline;
   margin-bottom: 4px;
+  margin-left: 10px;
 }
 
 .big-currency {
@@ -469,17 +435,17 @@ function generateMockTrendData(): TrendDataItem[] {
 }
 
 .big-diff {
-  font-size: 1.2rem;
-  margin-right: 2px;
+  font-size: 2rem;
+  margin-right: 8px;
 }
 
 .arrow-up {
   color: #e60000; /* 红色箭头 */
-  font-size: 1.2rem;
+  font-size: 2rem;
 }
 .arrow-down {
   color: #22c55e; /* 绿色箭头 */
-  font-size: 1.2rem;
+  font-size: 2rem;
 }
 
 /* 第二行：中文货币名称 */
@@ -487,30 +453,20 @@ function generateMockTrendData(): TrendDataItem[] {
   font-size: 1.5rem;
   margin-bottom: 10px;
   color: #333;
+  margin-left: 10px;
 }
 
 /* 买入/卖出价 */
 .price-line {
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   margin: 3px 0;
-  color: #333;
-}
-
-/* 底部：时间 + 中间价 */
-.bottom-line {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: #555;
+  color: #000000;
 }
 
 .date {
   margin-right: 8px;
-}
-
-.mid-price {
-  /* 让中间价与日期分开 */
+  margin-left: 10px;
+  font-size: 1.2rem;
 }
 
 /* 趋势弹窗相关 */
@@ -529,5 +485,10 @@ function generateMockTrendData(): TrendDataItem[] {
   width: 1.5em;
   height: 1.5em;
   margin-right: 4px;
+}
+.page-title {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 </style>
