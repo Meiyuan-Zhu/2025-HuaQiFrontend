@@ -18,7 +18,7 @@
                 <div class="top-line">
                   <span class="big-currency">{{ item.currency }}</span>
                 </div>
-                <div class="zh-currency">{{ currencyZhMap[item.currency] }}</div>
+                <div class="zh-currency">{{ item.currency_name }}</div>
                 <span class="date">{{ item.updateTime }}</span>
               </div>
 
@@ -60,7 +60,10 @@
         <el-row :gutter="20" class="trend-controls">
           <el-col :span="8">
             <div class="currency-pair">
-              <el-select v-model="fromCurrency" class="currency-select" @change="updateTrendData">
+              <el-select 
+              v-model="fromCurrency" 
+              class="currency-select" 
+              @change="updateTrendData">
                 <el-option
                   v-for="currency in availableCurrencies"
                   :key="currency"
@@ -108,26 +111,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import axios from "axios";
 
 // ECharts & Vue-ECharts
+import * as echarts from "echarts";
 import { use } from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { CanvasRenderer } from "echarts/renderers";
-import { GridComponent, TooltipComponent, TitleComponent, LegendComponent } from "echarts/components";
+import { 
+  GridComponent, 
+  TooltipComponent, 
+  TitleComponent, 
+  LegendComponent 
+} from "echarts/components";
 import VChart from "vue-echarts";
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, TitleComponent, LegendComponent]);
+use([
+  CanvasRenderer, 
+  LineChart, 
+  GridComponent, 
+  TooltipComponent, 
+  TitleComponent, 
+  LegendComponent
+]);
 
 import { getCurrencyFlag } from "../../utils/index";
+
 
 // ================== 接口定义 ================== //
 interface RateItem {
   id: number;
-  currency: string;
-  fromRate: number; // CNY -> currency
-  toRate: number;   // currency -> CNY
-  updateTime: string;
+  currency: string; // 对应接口字段 currency_code
+  currency_name: string; // 对应接口字段 currency_name
+  fromRate: number; 
+  toRate: number;   
+  updateTime: string; //date
+  buy_price: number;
+  sell_price: number;
+  change_rate: number;
 }
 
 interface TrendDataItem {
@@ -136,10 +158,11 @@ interface TrendDataItem {
 }
 
 // ================== 响应式数据 ================== //
-const baseCurrency = ref("CNY");   // 基准货币
+const baseCurrency = ref("CNY");   
 const searchQuery = ref("");
 const currentPage = ref(1);
 const pageSize = ref(6);
+const selectedTimeRange = ref("1W");
 
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");
@@ -148,194 +171,260 @@ const trendPeriod = ref("week");
 const trendData = ref<TrendDataItem[]>([]);
 
 // 示例汇率列表
-const rateList = ref<RateItem[]>([
-  {
-    id: 1,
-    currency: "USD",
-    fromRate: 0.1372,
-    toRate: 7.2884,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 2,
-    currency: "HKD",
-    fromRate: 1.06879,
-    toRate: 0.93564,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 3,
-    currency: "EUR",
-    fromRate: 0.1265,
-    toRate: 7.9051,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 4,
-    currency: "GBP",
-    fromRate: 0.1082,
-    toRate: 9.2421,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 5,
-    currency: "JPY",
-    fromRate: 20.3451,
-    toRate: 0.0491,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 6,
-    currency: "AUD",
-    fromRate: 0.2089,
-    toRate: 4.7867,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 7,
-    currency: "CAD",
-    fromRate: 0.1851,
-    toRate: 5.4025,
-    updateTime: "2025-03-11",
-  },
-  {
-    id: 8,
-    currency: "SGD",
-    fromRate: 0.1834,
-    toRate: 5.4526,
-    updateTime: "2025.03.11",
-  },
-  {
-    id: 9,
-    currency: "CHF",
-    fromRate: 0.1189,
-    toRate: 8.4104,
-    updateTime: "2025-03-11",
-  },
-]);
+const rateList = ref<RateItem[]>([]);
 
-// 货币的中文映射（可自行完善）
-const currencyZhMap: Record<string, string> = {
-  USD: "美 元",
-  HKD: "港 元",
-  EUR: "欧 元",
-  GBP: "英 镑",
-  JPY: "日 元",
-  AUD: "澳 元",
-  CAD: "加 元",
-  SGD: "新 元",
-  CHF: "瑞 郎",
-};
-
-// 可选的基准货币
-const availableCurrencies = ["CNY","USD","EUR","GBP","JPY","HKD","AUD","CAD","SGD","CHF"];
+// 所有可选货币
+const availableCurrencies = ["CNY", "USD", "EUR", "GBP", "JPY"];
 
 // ================== 过滤 & 分页 ================== //
-const filteredRates = computed(() => {
-  return rateList.value.filter((item) =>
+const filteredRates = computed(() =>
+  rateList.value.filter((item) =>
     item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
-
+  )
+);
 const paginatedRates = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   return filteredRates.value.slice(start, start + pageSize.value);
 });
 
 /**
- * 计算并扩展卡片需要的数据：
- *  - diffVal: 涨跌值 (toRate - fromRate)
- *  - isUp: 判断涨跌
- *  - buy / sell / mid: 这里简单模拟
+ * 扩展卡片数据：
+ * - diffVal: 直接使用 change_rate（接口返回）
+ * - isUp: 当 change_rate >= 0 则为 true
+ * - buy: 使用 buy_price
+ * - sell: 使用 sell_price
+ * - mid: 使用 toRate（即 central_parity）
  */
 const extendedRates = computed(() => {
-  return paginatedRates.value.map((r) => {
-    const diff = r.toRate - r.fromRate;
+  return paginatedRates.value.map((r, index) => {
+    const diff = r.change_rate;
     const isUp = diff >= 0;
     return {
-      ...r,
+      id: r.id || index + 1,
+      currency: r.currency,
+      currency_name: r.currency_name,
+      updateTime: r.updateTime,
+      fromRate: r.toRate - r.change_rate,
+      toRate: r.toRate,
       diffVal: diff.toFixed(2),
       isUp,
-      // 模拟：买入价 = toRate - 0.05，卖出价 = toRate + 0.05
-      buy: (r.toRate - 0.05).toFixed(2),
-      sell: (r.toRate + 0.05).toFixed(2),
+      buy: r.buy_price.toFixed(2),
+      sell: r.sell_price.toFixed(2),
       mid: r.toRate.toFixed(2),
     };
   });
 });
 
-// ================== 搜索、弹窗、趋势 ================== //
-const handleSearch = () => {
-  currentPage.value = 1;
-};
+// ================== 接口调用 ================== //
+// 接口1：获取所有外汇列表
+const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_all_forex?apifoxApiId=273598691";
+// 接口2：获取单个外汇数据（趋势数据）
+const SINGLE_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_forex?apifoxApiId=273598878";
 
-const showTrend = (row: RateItem) => {
+async function fetchAllForexList() {
+  try {
+    const res = await axios.get(ALL_FOREX_API);
+    if (res.data && res.data.data) {
+      rateList.value = res.data.data.map((item: any, index: number) => ({
+        id: index + 1,
+        currency: item.currency_code,
+        currency_name: item.currency_name,
+        // 假设：fromRate = central_parity - change_rate, toRate = central_parity
+        fromRate: item.central_parity - item.change_rate,
+        toRate: item.central_parity,
+        updateTime: item.date,
+        buy_price: item.buy_price,
+        sell_price: item.sell_price,
+        change_rate: item.change_rate,
+      }));
+      console.log("获取汇率数据成功", rateList.value);
+    } else {
+      console.error("接口返回数据格式不符合预期", res.data);
+    }
+  } catch (error) {
+    console.error("获取外汇列表失败", error);
+  }
+}
+onMounted(() => {
+  fetchAllForexList();
+})
+
+// 点击卡片时，从接口2获取单个外汇趋势数据
+const showTrend = async (row: RateItem) => {
   fromCurrency.value = row.currency;
   toCurrency.value = baseCurrency.value;
   showTrendModal.value = true;
-  updateTrendData();
+  await fetchSingleForexTrend(row.currency);
+  updateTrendData(); // 更新图表
 };
 
-// 模拟更新趋势数据
-const chartOption = computed(() => ({
-  title: {
-    text: `${fromCurrency.value} → ${toCurrency.value} 汇率趋势`,
-    left: "center",
-  },
-  tooltip: {
-    trigger: "axis",
-    formatter: (params: any[]) => {
-      const date = params[0].axisValue;
-      const value = params[0].data;
-      return `${date}<br/><strong>${value.toFixed(4)}</strong>`;
-    },
-  },
-  xAxis: {
-    type: "category",
-    data: trendData.value.map((item) => item.date),
-    axisLabel: { rotate: 45 },
-  },
-  yAxis: {
-    type: "value",
-    axisLabel: { formatter: (value: number) => value.toFixed(4) },
-  },
-  series: [
-    {
-      type: "line",
-      data: trendData.value.map((item) => item.rate),
-      smooth: true,
-      lineStyle: { color: "#6366f1", width: 2 },
-      itemStyle: { color: "#6366f1" },
-      areaStyle: {
-        color: {
-          type: "linear",
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: "rgba(99, 102, 241, 0.2)" },
-            { offset: 1, color: "rgba(99, 102, 241, 0)" },
-          ],
-        },
-      },
-    },
-  ],
-}));
+async function fetchSingleForexTrend(currencyCode:string) {
+  try {
+    const res = await axios.get(SINGLE_FOREX_API, {
+      params: { symbol: currencyCode},
+    });
+    if (res.data && res.data.data && res.data.data.data) {
+      trendData.value = res.data.data.data.map((item: any) => ({
+        date: item.date,
+        rate: item.central_parity, // 使用 central_parity 作为趋势值
+      }));
+      console.log("获取趋势数据成功", trendData.value);
+    } else {
+      console.error("接口返回数据格式不符合预期", res.data);
+    }
+  } catch (error) {
+    console.error("获取趋势数据失败", error);
+  }
+}
 
-function updateTrendData() {
-  // 模拟获取趋势数据
-  trendData.value = generateMockTrendData();
+// ================== 图表配置 ================== //
+// chartOption: vue-echarts 绑定的配置对象
+const chartOption = ref({});
+
+const updateTrendData = () => {
+  const dates = trendData.value.map(item => item.date);
+  const rates = trendData.value.map(item => item.rate);
+  
+  chartOption.value = {
+    tooltip: { trigger: "axis" },
+    dataZoom: [
+      {
+        type: "slider",
+        show: true,
+        xAxisIndex: 0,
+        start: 0,
+        end: 100,
+      },
+      {
+        type: "inside",
+        xAxisIndex: 0,
+      },
+    ],
+    xAxis: {
+      type: "category",
+      data: dates,
+      axisLabel: { rotate: 45 }
+    },
+    yAxis: {
+      type: "value",
+      axisLabel: { formatter: (value: number) => value.toFixed(4) }
+    },
+    series: [
+      {
+        name: "累计收益率",
+        type: "line",
+        data: rates,
+        smooth: true,
+        lineStyle: { width: 2 }
+      }
+    ]
+  };
+
+
   ElMessage.success("趋势数据已更新");
 }
 
-function generateMockTrendData(): TrendDataItem[] {
-  const days = trendPeriod.value === "week" ? 7 : trendPeriod.value === "month" ? 30 : 365;
-  return Array.from({ length: days }, (_, i) => ({
-    date: new Date(Date.now() - (days - i) * 86400000).toISOString().split("T")[0],
-    rate: 1 + Math.random() * 0.2, // 模拟汇率波动
-  }));
-}
+// 辅助函数：根据时间范围返回数据点数量
+const getCountFromTimeRange = (timeRange: string) => {
+  switch (timeRange) {
+    case "1W": return 7;
+    case "1M": return 30;
+    case "1Q": return 90;
+    case "1Y": return 365;
+    case "3Y": return 365 * 3;
+    default: return 30;
+  }
+};
+
+// 上方K线图
+const chartRef = ref<HTMLElement | null>(null);
+let chartInstance: echarts.ECharts | null = null;
+const initChart = () => {
+  if (chartRef.value) {
+    chartInstance = (chartRef.value as any).getEchartsInstance();
+    updateChart();
+  }
+};
+const updateChart = () => {
+  if (!chartInstance) return;
+  const count = getCountFromTimeRange(selectedTimeRange.value);
+  const dates = [];
+  const dataReal = [];
+  const dataPred = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    dates.push(`${year}-${month}-${day}`);
+    dataReal.push((Math.random() * 10 + 90).toFixed(2));
+    dataPred.push((Math.random() * 10 + 90).toFixed(2));
+  }
+  const option = {
+    tooltip: { trigger: "axis" },
+    legend: { data: ["真实汇率", "预测汇率"] },
+    xAxis: { type: "category", data: dates },
+    yAxis: { type: "value" },
+    dataZoom: [
+      {
+        type: "slider",
+        show: true,
+        xAxisIndex: 0,
+        start: 0,
+        end: 100,
+      },
+      {
+        type: "inside",
+        xAxisIndex: 0,
+      },
+    ],
+    series: [
+      {
+        name: "真实汇率",
+        type: "line",
+        data: dataReal,
+        smooth: true,
+        markPoint: {
+          data: [
+            { type: "max", name: "Buy" },
+            { type: "min", name: "Sell" },
+          ],
+        },
+      },
+      {
+        name: "预测汇率",
+        type: "line",
+        data: dataPred,
+        smooth: true,
+      },
+    ],
+  };
+  chartInstance.setOption(option);
+};
+
+
+watch([baseCurrency, selectedTimeRange], () => {
+  nextTick(() => {
+    updateChart();
+  });
+});
+onMounted(() => {
+  initChart();
+});
+
+// 下方收益率图（阶段二）
+const strategyList = [
+  { name: "Strategy 1", value: "A" },
+  { name: "Strategy 2", value: "B" },
+  { name: "Strategy 3", value: "C" },
+];
+const selectedStrategy = ref(strategyList[0].value);
+const cumulativeYield = ref("5.20");
+const annualYield = ref("4.10");
+const maxDrawdown = ref("-2.30");
+
+
 </script>
 
 <style scoped>
