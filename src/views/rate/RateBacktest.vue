@@ -359,3 +359,5 @@ onMounted(() => { initYieldChart(); });
   border: 1px solid #eee;
 }
 </style>
+
+
