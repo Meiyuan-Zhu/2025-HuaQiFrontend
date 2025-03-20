@@ -32,9 +32,18 @@
                   </span>
                 </div>
                 
-                <div class="price-line">买入价： {{  item.buy  }}</div>
-                <div class="price-line">卖出价： {{  item.sell  }}</div>
-                <div class="price-line">中间价： {{  item.mid  }}</div>
+                <div class="price-line">
+                  <span class="price-label">买入价</span>
+                  <span class="price-value">{{ item.buy }}</span>
+                </div>
+                <div class="price-line">
+                  <span class="price-label">卖出价</span>
+                  <span class="price-value">{{ item.sell }}</span>
+                </div>
+                <div class="price-line">
+                  <span class="price-label">中间价</span>
+                  <span class="price-value">{{ item.mid }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -464,22 +473,23 @@ const maxDrawdown = ref("-2.30");
 
 /* 卡片列表区域 */
 .card-list {
-  margin: 20px;
+  margin: 20px 40px;
   display: flex;
   flex-wrap: wrap;
-  gap: 30px;
+  gap: 40px;
   padding-bottom: 100px;
   position: relative;
   z-index: 1;
   perspective: 1000px;
+  justify-content: center;
 }
 
-/* 单个卡片：增强科技感 */
+/* 单个卡片：调整大小 */
 .exact-card {
-  width: 20rem;
+  width: 18rem;
   color: #fff;
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   box-sizing: border-box;
   font-family: "Inter", "Arial", sans-serif;
   margin-bottom: 20px;
@@ -491,24 +501,6 @@ const maxDrawdown = ref("-2.30");
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transform-style: preserve-3d;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      120deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.1) 40%,
-      transparent 60%
-    );
-    transition: transform 0.6s ease;
-    transform: translateX(-100%);
-  }
-  
-  &:hover::after {
-    transform: translateX(100%);
-  }
 }
 
 .trend-up {
@@ -600,55 +592,52 @@ const maxDrawdown = ref("-2.30");
   margin-bottom: 12px;
 }
 
+/* 调整一下字体大小，保持协调 */
 .big-currency {
-  font-size: 3.2rem;
-  font-weight: 800;
-  margin-right: 6px;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
-  letter-spacing: -1px;
-  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.big-diff {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-right: 8px;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
-  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 2.8rem;
 }
 
 .zh-currency {
-  font-size: 1.6rem;
-  margin-bottom: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  margin-left: 10px;
-  letter-spacing: 1px;
+  font-size: 1.4rem;
 }
 
-.price-line {
-  font-size: 1.3rem;
-  margin: 4px 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  transition: color 0.3s ease;
-  
-  &:hover {
-    color: #fff;
-  }
+.big-diff {
+  font-size: 2rem;
+}
+
+/* 左侧布局调整 */
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 10px;
+  margin-top: 4px;
 }
 
 .date {
-  margin-right: 8px;
-  margin-left: 10px;
   font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.7);
   font-weight: 400;
+}
+
+/* 右侧价格行样式调整 */
+.price-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 8px 0;
+}
+
+.price-label {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2px;
+}
+
+.price-value {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 /* 趋势弹窗相关 */
