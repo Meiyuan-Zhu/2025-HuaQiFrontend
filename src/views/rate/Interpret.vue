@@ -217,7 +217,7 @@ onMounted(() => {
   <el-main>
     <el-container class="interpret-board">
       <el-header class="interpret-header">
-        <el-row :gutter="20" justify="space-beetween">
+        <el-row :gutter="20" justify="space-between">
           <el-col :span="4">
             <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
           </el-col>
@@ -235,7 +235,7 @@ onMounted(() => {
                 :key="index"
                 :label="`${item.from}/${item.to}`"
                 :value="`${item.from}/${item.to}`">
-                <template #default="{ label }">
+                <template #default="">
                   <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
                   <span class="separator">/</span>
                   <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>

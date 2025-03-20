@@ -236,7 +236,7 @@ const downloadReport = () => {
         <el-container style="display: flex;">
           <!-- 货币对 预测模型 预测周期 -->
           <el-header style="height: 10%;">
-            <el-row :gutter="20" justify="space-beetween">
+            <el-row :gutter="20" justify="space-between">
               <el-col :span="3">
                 <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
               </el-col>
@@ -254,7 +254,7 @@ const downloadReport = () => {
                     :key="index"
                     :label="`${item.from}/${item.to}`"
                     :value="`${item.from}/${item.to}`">
-                    <template #default="{ label }">
+                    <template #default="">
                       <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
                       <span class="separator">/</span>
                       <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
