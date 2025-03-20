@@ -66,16 +66,36 @@ const updateChart = () => {
   const dataPred = [];  
   const now = new Date();
   for (let i = 0; i < count; i++) {
-    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-    dates.push(`${date.getMonth()+1}-${date.getDate()}`);
-    dataReal.push((Math.random() * 10 + 90).toFixed(2));
-    dataPred.push((Math.random() * 10 + 90).toFixed(2));
-  }
+  const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
+  // 自定义格式化
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
+  const day = String(date.getDate()).padStart(2, '0');        // 补零
+  dates.push(`${year}-${month}-${day}`); // e.g. "2025-03-18"
+
+  dataReal.push((Math.random() * 10 + 90).toFixed(2));
+  dataPred.push((Math.random() * 10 + 90).toFixed(2));
+}
+
   const option = {
     tooltip: { trigger: 'axis' },
     legend: { data: ['真实汇率', '预测汇率'] },
     xAxis: { type: 'category', data: dates },
     yAxis: { type: 'value' },
+    dataZoom: [
+    {
+      type: 'slider',
+      show: true,
+      xAxisIndex: 0,
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',     // 内部滚轮缩放
+      xAxisIndex: 0, 
+      // 也可以设置 start, end
+    }
+    ],
     series: [
       {
         name: '真实汇率',
@@ -125,11 +145,29 @@ const updateYieldChart = () => {
   const now = new Date();
   for (let i = 0; i < count; i++) {
     const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-    dates.push(`${date.getMonth()+1}-${date.getDate()}`);
+    // 与上方图表相同的日期格式, e.g. "2025-03-19"
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+
     yieldData.push((Math.random() * 2 + 4).toFixed(2));
   }
   const option = {
     tooltip: { trigger: 'axis' },
+    dataZoom: [
+      {
+        type: 'slider',
+        show: true,
+        xAxisIndex: 0,
+        start: 0,
+        end: 100
+      },
+      {
+        type: 'inside', // 滚轮/手势缩放
+        xAxisIndex: 0
+      }
+    ],
     xAxis: { type: 'category', data: dates },
     yAxis: { type: 'value' },
     series: [{
@@ -321,3 +359,5 @@ onMounted(() => { initYieldChart(); });
   border: 1px solid #eee;
 }
 </style>
+
+
