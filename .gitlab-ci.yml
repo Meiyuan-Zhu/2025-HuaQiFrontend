@@ -40,5 +40,5 @@ deploy-job:      # This job runs in the deployment stage.
     - fi
     # - docker login --username rashawnx --password $ACR_PASSWORD $ACR_SERVER
     # - docker pull $ACR_SERVER/crsmis/erps-frontend:1.0
-    - docker run --name erps-frontend -itd -p 6010:80 $ACR_SERVER/crsmis/erps-frontend:1.0
+    - docker run --name erps-frontend -itd -p 80:80 $ACR_SERVER/crsmis/erps-frontend:1.0
     - echo "Application successfully deployed."
