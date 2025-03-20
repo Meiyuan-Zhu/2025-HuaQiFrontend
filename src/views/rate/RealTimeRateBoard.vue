@@ -91,8 +91,6 @@ use([
   LegendComponent
 ]);
 
-import { getCurrencyFlag } from "../../utils/index";
-
 
 // ================== 接口定义 ================== //
 interface RateItem {
