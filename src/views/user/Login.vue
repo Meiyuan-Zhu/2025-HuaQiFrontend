@@ -1,50 +1,41 @@
 <script setup lang="ts">
-import {ElForm, ElFormItem} from "element-plus"
-import {ref, computed} from 'vue'
-import {router} from '../../router'
-import {userInfo, userLogin} from "../../api/user.ts"
+import { ElForm, ElFormItem } from "element-plus"
+import { ref, computed } from 'vue'
+import { router } from '../../router'
+import { userLogin } from "../../api/user.ts"
 
 // 输入框值（需要在前端拦截不合法输入：是否为空+额外规则）
-const tel = ref('')
+const username = ref('')
 const password = ref('')
 
-// 电话号码是否为空
-const hasTelInput = computed(() => tel.value != '')
+// 用户名是否为空
+const hasTelInput = computed(() => username.value != '')
 // 密码是否为空
 const hasPasswordInput = computed(() => password.value != '')
-// 电话号码的规则
-const chinaMobileRegex = /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/
-const telLegal = computed(() => chinaMobileRegex.test(tel.value))
-// 密码不设置特殊规则
 // 登录按钮可用性
 const loginDisabled = computed(() => {
-  return !(hasTelInput.value && telLegal.value && hasPasswordInput.value)
+  return !(hasTelInput.value && hasPasswordInput.value)
 })
 
 // 登录按钮触发
 function handleLogin() {
+  //临时测试用
+  sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
+  router.push({path: "/dashboard"})
+
   userLogin({
-    phone: tel.value,
+    username: username.value,
     password: password.value
   }).then(res => {
-    if (res.data.code === '000') {
+    if (res.data.code === '200') {
       ElMessage({
         message: "登录成功！",
         type: 'success',
         center: true,
       })
-      const token = res.data.result
-      sessionStorage.setItem('token', token)
-
-      userInfo().then(res => {
-        console.log(res.data.result);
-        
-        sessionStorage.setItem('name', res.data.result.name)
-        sessionStorage.setItem('role', res.data.result.role)
-        sessionStorage.setItem('user', JSON.stringify(res.data.result))
-        router.push({path: "/dashboard"})
-      })
-    } else if (res.data.code === '400') {
+      sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
+      router.push({path: "/dashboard"})
+    }else{
       ElMessage({
         message: res.data.msg,
         type: 'error',
@@ -64,16 +55,15 @@ function handleLogin() {
         <h1>登入您的账户</h1>
         <el-form>
           <el-form-item>
-            <label v-if="!hasTelInput" for="tel">注册手机号</label>
-            <label v-else-if="!telLegal" for="tel" class="error-warn">手机号不合法</label>
-            <label v-else for="tel">注册手机号</label>
-            <el-input id="tel" type="text" v-model="tel"
-                      required :class="{'error-warn-input' :(hasTelInput && !telLegal)}"
-                      placeholder="请输入手机号"/>
+            <label v-if="!hasTelInput" for="tel">用户名</label>
+            <label v-else for="tel">用户名</label>
+            <el-input id="tel" type="text" v-model="username"
+                      required :class="{'error-warn-input' :(hasTelInput)}"
+                      placeholder="请输入用户名"/>
           </el-form-item>
 
           <el-form-item>
-            <label for="password">账户密码</label>
+            <label for="password">密码</label>
             <el-input id="password" type="password" v-model="password"
                       required
                       placeholder="••••••••"/>

@@ -8,16 +8,6 @@ const router = createRouter({
             redirect: '/homepage'
         },
         {
-            path: '/login',
-            component: () => import('../views/user/Login.vue'),
-            meta: {title: '用户登录'}
-        }, 
-        {
-            path: '/register',
-            component: () => import('../views/user/Register.vue'),
-            meta: {title: '用户注册'}
-        }, 
-        {
             path: '/',
             component: () => import('../views/Home.vue'),
             children: [
@@ -40,7 +30,21 @@ const router = createRouter({
                 {
                     path: '/interpret',
                     component: () => import('../views/rate/Interpret.vue'),
-                }
+                },
+                {
+                    path: '/dashboard',
+                    component: () => import('../views/user/Dashboard.vue'),
+                },
+                {
+                    path: '/login',
+                    component: () => import('../views/user/Login.vue'),
+                    meta: {title: '用户登录'}
+                }, 
+                {
+                    path: '/register',
+                    component: () => import('../views/user/Register.vue'),
+                    meta: {title: '用户注册'}
+                }, 
             ]
         },
         {
