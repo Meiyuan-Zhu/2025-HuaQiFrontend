@@ -1,5 +1,5 @@
 <template>
-  <el-main class="rate-container" :style="{ backgroundImage: `url(${backgroundImage})` }">
+  <el-main class="rate-container">
     <!-- 顶部：基准货币选择、搜索框 -->
     <el-header class="header">
       <h1 class="page-title">今日汇率</h1>
@@ -411,233 +411,174 @@ const maxDrawdown = ref("-2.30");
 </script>
 
 <style scoped>
-/* 外层容器 */
+/* 外层容器 - 使用更深邃的背景色 */
 .rate-container {
-  padding: 10px;
+  padding: 20px;
   margin: 0;
   position: absolute;
   top: 6%;
   left: 0;
   right: 0;
   min-height: 100vh;
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  background-color: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, #000033 0%, #000056 100%);
   overflow-x: hidden;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    background: inherit;
-    filter: blur(30px);
-    z-index: -1;
-  }
 }
 
-/* 头部样式（基准货币、搜索框） */
-.header {
-  margin-top: 20px;
-  position: relative;
-  z-index: 2;
-}
-
+/* 页面标题样式优化 */
 .page-title {
-  font-size: 2.5em;
-  font-weight: 800;
-  margin-bottom: 20px;
   color: #fff;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
-  letter-spacing: 2px;
-  position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 0;
-    width: 60px;
-    height: 4px;
-    background: linear-gradient(90deg, #fff, transparent);
-    border-radius: 2px;
-  }
+  font-size: 2.4rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 20px 0 40px;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
 }
 
-/* 卡片列表区域 */
+/* 卡片列表布局优化 */
 .card-list {
   margin: 20px 40px;
   display: flex;
   flex-wrap: wrap;
-  gap: 40px;
+  gap: 30px;
   padding-bottom: 100px;
-  position: relative;
-  z-index: 1;
-  perspective: 1000px;
   justify-content: center;
 }
 
-/* 单个卡片：调整大小 */
+/* 卡片样式优化 */
 .exact-card {
-  width: 18rem;
+  width: 14rem;
   color: #fff;
   border-radius: 16px;
   padding: 16px;
-  box-sizing: border-box;
-  font-family: "Inter", "Arial", sans-serif;
-  margin-bottom: 20px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transform-style: preserve-3d;
 }
 
+/* 上涨和下跌卡片样式优化 */
 .trend-up {
-  background: linear-gradient(135deg, 
-    rgba(89, 13, 13, 0.92) 0%,
-    rgba(163, 34, 34, 0.88) 50%,
-    rgba(204, 0, 0, 0.84) 100%
+  background: linear-gradient(165deg, 
+    rgba(56, 189, 248, 0.95) 0%,    /* 天蓝色开始 */
+    rgba(59, 130, 246, 0.9) 60%,    /* 渐变到亮蓝色 */
+    rgba(239, 68, 68, 0.85) 100%    /* 明亮的红色 */
   );
-  box-shadow: 0 8px 32px rgba(204, 0, 0, 0.2),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15);
 }
 
 .trend-down {
-  background: linear-gradient(135deg, 
-    rgba(20, 83, 45, 0.92) 0%,
-    rgba(22, 101, 52, 0.88) 50%,
-    rgba(21, 128, 61, 0.84) 100%
+  background: linear-gradient(165deg, 
+    rgba(56, 189, 248, 0.95) 0%,    /* 天蓝色开始 */
+    rgba(59, 130, 246, 0.9) 60%,    /* 渐变到亮蓝色 */
+    rgba(34, 197, 94, 0.85) 100%    /* 明亮的绿色 */
   );
-  box-shadow: 0 8px 32px rgba(21, 128, 61, 0.2),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
 }
 
-.exact-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
-}
-
-.trend-up:hover {
-  box-shadow: 0 15px 45px rgba(204, 0, 0, 0.25),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-}
-
-.trend-down:hover {
-  box-shadow: 0 15px 45px rgba(21, 128, 61, 0.25),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-}
-
-/* 更新箭头样式 */
+/* 更新箭头颜色 */
 .arrow-up {
-  color: #ef4444;
-  font-size: 2.2rem;
-  text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-  transform: translateY(-2px);
-  transition: transform 0.3s ease;
+  color: rgb(255, 86, 86);    /* 更明亮的红色 */
+  font-size: 1.6rem;
+  text-shadow: 0 0 15px rgba(255, 86, 86, 0.6);
 }
 
 .arrow-down {
-  color: #15803d;
-  font-size: 2.2rem;
-  text-shadow: 0 0 15px rgba(21, 128, 61, 0.6);
-  transform: translateY(2px);
-  transition: transform 0.3s ease;
+  color: rgb(52, 211, 153);    /* 更明亮的绿色 */
+  font-size: 1.6rem;
+  text-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
 }
 
-.exact-card:hover .arrow-up {
-  transform: translateY(-4px);
+/* 卡片悬浮效果优化 */
+.trend-up:hover {
+  box-shadow: 0 20px 40px rgba(239, 68, 68, 0.2);
 }
 
-.exact-card:hover .arrow-down {
-  transform: translateY(4px);
+.trend-down:hover {
+  box-shadow: 0 20px 40px rgba(34, 197, 94, 0.2);
 }
 
-.card-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-/* 左侧区域 */
-.left-part {
-  display: flex;
-  flex-direction: column;
-  margin-right: 10px;
-}
-
-/* 右侧区域 */
-.right-part {
-  display: flex;
-  flex-direction: column;
-  text-align: right;
-}
-
+/* 差值行背景微调 */
 .diff-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(5px);
   margin-bottom: 12px;
+  padding: 4px 8px;
 }
 
-/* 调整一下字体大小，保持协调 */
+/* 货币代码样式优化 */
 .big-currency {
-  font-size: 2.8rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
 }
 
+/* 中文货币名称样式优化 */
 .zh-currency {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 4px 0;
 }
 
-.big-diff {
-  font-size: 2rem;
-}
-
-/* 左侧布局调整 */
-.info-line {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: 10px;
-  margin-top: 4px;
-}
-
+/* 日期样式优化 */
 .date {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 400;
 }
 
-/* 右侧价格行样式调整 */
+/* 价格行样式优化 */
 .price-line {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   margin: 8px 0;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.price-line:last-child {
+  border-bottom: none;
 }
 
 .price-label {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .price-value {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* 差值和箭头样式优化 */
+.diff-row {
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.big-diff {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .card-list {
+    margin: 20px;
+    gap: 30px;
+  }
+  
+  .exact-card {
+    width: 100%;
+    padding: 20px;
+  }
 }
 
 /* 趋势弹窗相关 */
@@ -669,24 +610,5 @@ const maxDrawdown = ref("-2.30");
 /* 移除分页样式 */
 .pagination {
   display: none;
-}
-
-/* 添加响应式设计 */
-@media (max-width: 768px) {
-  .card-list {
-    gap: 20px;
-  }
-  
-  .exact-card {
-    width: calc(100% - 20px);
-  }
-  
-  .big-currency {
-    font-size: 2.8rem;
-  }
-  
-  .big-diff {
-    font-size: 2rem;
-  }
 }
 </style>
