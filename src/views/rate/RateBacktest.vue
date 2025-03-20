@@ -4,6 +4,9 @@ import { ElSelect, ElOption } from "element-plus";
 import "element-plus/es/components/select/style/css";
 import "element-plus/es/components/option/style/css";
 import BacktestKline from "./BacktestKline.vue"; 
+import BacktestPredLine from "./BacktestPredLine.vue";
+import BacktestNetWorth from "./BacktestNetWorth.vue";
+import BacktestProfitCard from "./BacktestProfitCard.vue";
 
 
 const currencyPairs = [
@@ -53,7 +56,7 @@ const strategies = [
 const selectedStrategy = ref("Aberration");
 
 /* 时间跨度 */
-const timeRanges = ["1W", "1M", "1Q", "1Y", "3Y"];
+const timeRanges = ["1W", "1M", "1S", "1Y", "3Y"];
 const selectedTimeRange = ref("1M");
 
 </script>
@@ -151,10 +154,11 @@ const selectedTimeRange = ref("1M");
       </div>
 
       <div class="card">
-        <h3>预测折线图</h3>
-        <div class="chart-placeholder">
-          <p>这里是预测折线图占位</p>
-        </div>
+        <BacktestPredLine
+          :currencyPair="selectedPair"
+          :strategy="selectedStrategy"
+          :timeRange="selectedTimeRange"
+        />
       </div>
     </div>
 
@@ -162,22 +166,20 @@ const selectedTimeRange = ref("1M");
     <div class="row">
       <!-- 回测收益指标卡片 -->
       <div class="card">
-        <h3>回测收益指标</h3>
-        <ul>
-          <li>累计收益率: 占位</li>
-          <li>年化收益率: 占位</li>
-          <li>夏普比: 占位</li>
-          <li>最大回撤: 占位</li>
-          <li>卡玛比率: 占位</li>
-        </ul>
+        <BacktestProfitCard
+          :currencyPair="selectedPair"
+          :strategy="selectedStrategy"
+          :timeRange="selectedTimeRange"
+        />
       </div>
 
       <!-- 净值曲线图卡片 -->
       <div class="card">
-        <h3>净值曲线</h3>
-        <div class="chart-placeholder">
-          <p>这里是净值曲线图占位</p>
-        </div>
+        <BacktestNetWorth
+          :currencyPair="selectedPair"
+          :strategy="selectedStrategy"
+          :timeRange="selectedTimeRange"
+        />
       </div>
     </div>
   </div>

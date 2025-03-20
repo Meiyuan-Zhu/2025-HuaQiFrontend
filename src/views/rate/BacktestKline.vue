@@ -165,7 +165,7 @@
     switch(tr) {
       case "1W": offsetDays = 7; break;
       case "1M": offsetDays = 30; break;
-      case "1Q": offsetDays = 90; break;
+      case "1S": offsetDays = 90; break;
       case "1Y": offsetDays = 365; break;
       case "3Y": offsetDays = 365 * 3; break;
     }

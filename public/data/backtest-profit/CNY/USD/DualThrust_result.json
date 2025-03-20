@@ -1,0 +1,46 @@
+{
+    "currency_pair": "中美",
+    "Strategy": "DualThrust_result",
+    "data": [
+        {
+            "period": "1Week",
+            "Cumulative_Return": 0.002246338914361,
+            "Annualized_Return": 0.124118494824756,
+            "Sharpe_Ratio": 3.81279468963006,
+            "Maximum_Drawdown": 0.001498913189669,
+            "Calmar_Ratio": 82.8056592471032
+        },
+        {
+            "period": "1Month",
+            "Cumulative_Return": 0.0052699991017,
+            "Annualized_Return": 0.063842187503992,
+            "Sharpe_Ratio": 2.82350162523367,
+            "Maximum_Drawdown": 0.004722903821914,
+            "Calmar_Ratio": 13.5175709502643
+        },
+        {
+            "period": "1Season",
+            "Cumulative_Return": -5.6060193984e-05,
+            "Annualized_Return": -0.000222394227353,
+            "Sharpe_Ratio": 0.006935724812675,
+            "Maximum_Drawdown": 0.011253517395273,
+            "Calmar_Ratio": -0.01976219696846
+        },
+        {
+            "period": "1Year",
+            "Cumulative_Return": -0.023359029839375,
+            "Annualized_Return": -0.023295956605363,
+            "Sharpe_Ratio": -0.845416876003041,
+            "Maximum_Drawdown": 0.038997825943477,
+            "Calmar_Ratio": -0.597365520814626
+        },
+        {
+            "period": "3Year",
+            "Cumulative_Return": 0.034694777085462,
+            "Annualized_Return": 0.011423206439607,
+            "Sharpe_Ratio": 0.295623627714244,
+            "Maximum_Drawdown": 0.068127277199245,
+            "Calmar_Ratio": 0.167674489708411
+        }
+    ]
+}

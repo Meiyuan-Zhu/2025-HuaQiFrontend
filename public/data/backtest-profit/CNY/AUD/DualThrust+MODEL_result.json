@@ -1,0 +1,46 @@
+{
+    "currency_pair": "中澳",
+    "Strategy": "DualThrust+MODEL_result",
+    "data": [
+        {
+            "period": "1Week",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Month",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Season",
+            "Cumulative_Return": 0.001427634225877,
+            "Annualized_Return": 0.005675992156506,
+            "Sharpe_Ratio": 1.99183114353296,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Year",
+            "Cumulative_Return": 0.001427634225877,
+            "Annualized_Return": 0.001423730810503,
+            "Sharpe_Ratio": 0.99863294536223,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "3Year",
+            "Cumulative_Return": 0.111184407844984,
+            "Annualized_Return": 0.035733732835786,
+            "Sharpe_Ratio": 0.891548668412197,
+            "Maximum_Drawdown": 0.031644273239175,
+            "Calmar_Ratio": 1.12923221733368
+        }
+    ]
+}

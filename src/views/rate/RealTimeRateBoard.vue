@@ -68,7 +68,6 @@
 import { ref, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
-import backgroundImage from "../../assets/background2.webp";
 
 // ECharts & Vue-ECharts
 import * as echarts from "echarts";
@@ -118,14 +117,10 @@ const selectedTimeRange = ref("1W");
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");
 const toCurrency = ref("CNY");
-const trendPeriod = ref("week");
 const trendData = ref<TrendDataItem[]>([]);
 
 // 示例汇率列表
 const rateList = ref<RateItem[]>([]);
-
-// 所有可选货币
-const availableCurrencies = ["CNY", "USD", "EUR", "GBP", "JPY"];
 
 // ================== 过滤 ================== //
 const filteredRates = computed(() => {
@@ -428,18 +423,6 @@ watch([baseCurrency, selectedTimeRange], () => {
 onMounted(() => {
   initChart();
 });
-
-// 下方收益率图（阶段二）
-const strategyList = [
-  { name: "Strategy 1", value: "A" },
-  { name: "Strategy 2", value: "B" },
-  { name: "Strategy 3", value: "C" },
-];
-const selectedStrategy = ref(strategyList[0].value);
-const cumulativeYield = ref("5.20");
-const annualYield = ref("4.10");
-const maxDrawdown = ref("-2.30");
-
 
 </script>
 
