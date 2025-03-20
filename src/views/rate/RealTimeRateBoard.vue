@@ -1,5 +1,5 @@
 <template>
-  <el-main class="rate-container">
+  <el-main class="rate-container" :style="{ backgroundImage: `url(${backgroundImage})` }">
     <!-- 顶部：基准货币选择、搜索框 -->
     <el-header class="header">
       <h1 class="page-title">今日汇率</h1>
@@ -9,8 +9,9 @@
     <div class="card-list">
           <!-- 单个汇率卡片（点击可查看趋势） -->
           <div class="exact-card"
-        v-for="item in extendedRates"
+        v-for="item in filteredRates"
         :key="item.id"
+        :class="{'trend-up': item.isUp, 'trend-down': !item.isUp}"
         @click="showTrend(item)">
             <div class="card-content">
               <!-- 左边：货币代码、中文货币名、日期 -->
@@ -38,16 +39,6 @@
             </div>
           </div>
     </div>
-
-    <!-- 分页 -->
-    <el-pagination
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      :page-sizes="[6, 12]"
-      layout="total, sizes, prev, pager, next"
-      :total="filteredRates.length"
-      class="pagination"
-    />
 
     <!-- 汇率趋势弹窗 -->
     <el-dialog
@@ -114,6 +105,7 @@
 import { ref, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
+import backgroundImage from "../../assets/background2.webp";
 
 // ECharts & Vue-ECharts
 import * as echarts from "echarts";
@@ -160,8 +152,6 @@ interface TrendDataItem {
 // ================== 响应式数据 ================== //
 const baseCurrency = ref("CNY");   
 const searchQuery = ref("");
-const currentPage = ref(1);
-const pageSize = ref(6);
 const selectedTimeRange = ref("1W");
 
 const showTrendModal = ref(false);
@@ -176,27 +166,9 @@ const rateList = ref<RateItem[]>([]);
 // 所有可选货币
 const availableCurrencies = ["CNY", "USD", "EUR", "GBP", "JPY"];
 
-// ================== 过滤 & 分页 ================== //
-const filteredRates = computed(() =>
-  rateList.value.filter((item) =>
-    item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-);
-const paginatedRates = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredRates.value.slice(start, start + pageSize.value);
-});
-
-/**
- * 扩展卡片数据：
- * - diffVal: 直接使用 change_rate（接口返回）
- * - isUp: 当 change_rate >= 0 则为 true
- * - buy: 使用 buy_price
- * - sell: 使用 sell_price
- * - mid: 使用 toRate（即 central_parity）
- */
-const extendedRates = computed(() => {
-  return paginatedRates.value.map((r, index) => {
+// ================== 过滤 ================== //
+const filteredRates = computed(() => {
+  return rateList.value.map((r, index) => {
     const diff = r.change_rate;
     const isUp = diff >= 0;
     return {
@@ -212,7 +184,9 @@ const extendedRates = computed(() => {
       sell: r.sell_price.toFixed(2),
       mid: r.toRate.toFixed(2),
     };
-  });
+  }).filter((item) =>
+    item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
 });
 
 // ================== 接口调用 ================== //
@@ -430,132 +404,251 @@ const maxDrawdown = ref("-2.30");
 <style scoped>
 /* 外层容器 */
 .rate-container {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
   padding: 10px;
-  width: 80%;
-  margin: 0 auto;
+  margin: 0;
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  min-height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  background-color: rgba(255, 255, 255, 0.05);
+  overflow-x: hidden;
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    filter: blur(30px);
+    z-index: -1;
+  }
 }
 
 /* 头部样式（基准货币、搜索框） */
 .header {
   margin-top: 20px;
+  position: relative;
+  z-index: 2;
 }
-.search-col {
-  text-align: right;
+
+.page-title {
+  font-size: 2.5em;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+  letter-spacing: 2px;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, #fff, transparent);
+    border-radius: 2px;
+  }
 }
 
 /* 卡片列表区域 */
 .card-list {
-  margin-top: 20px;
-  margin-left:20px;
+  margin: 20px;
   display: flex;
   flex-wrap: wrap;
-  gap:30px;
+  gap: 30px;
+  padding-bottom: 100px;
+  position: relative;
+  z-index: 1;
+  perspective: 1000px;
 }
 
-/* 分页 */
-.pagination {
-  padding: 30px 0;
-  text-align: center;
-}
-
-/* 单个卡片：模拟图2的外观 */
+/* 单个卡片：增强科技感 */
 .exact-card {
-  width: 20rem; 
-  border: 1px solid #000;  /* 黑色边框 */
-  background-color: #f0f8ff;
-  color: #000;
-  border-radius: 12px;        /* 圆角 */
-  padding: 10px 14px;
+  width: 20rem;
+  color: #fff;
+  border-radius: 16px;
+  padding: 20px;
   box-sizing: border-box;
-  font-family: "Arial", sans-serif; 
+  font-family: "Inter", "Arial", sans-serif;
   margin-bottom: 20px;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* 添加阴影 */
-  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transform-style: preserve-3d;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      120deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.1) 40%,
+      transparent 60%
+    );
+    transition: transform 0.6s ease;
+    transform: translateX(-100%);
+  }
+  
+  &:hover::after {
+    transform: translateX(100%);
+  }
+}
+
+.trend-up {
+  background: linear-gradient(135deg, 
+    rgba(89, 13, 13, 0.92) 0%,
+    rgba(163, 34, 34, 0.88) 50%,
+    rgba(204, 0, 0, 0.84) 100%
+  );
+  box-shadow: 0 8px 32px rgba(204, 0, 0, 0.2),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.trend-down {
+  background: linear-gradient(135deg, 
+    rgba(20, 83, 45, 0.92) 0%,
+    rgba(22, 101, 52, 0.88) 50%,
+    rgba(21, 128, 61, 0.84) 100%
+  );
+  box-shadow: 0 8px 32px rgba(21, 128, 61, 0.2),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .exact-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+}
+
+.trend-up:hover {
+  box-shadow: 0 15px 45px rgba(204, 0, 0, 0.25),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.trend-down:hover {
+  box-shadow: 0 15px 45px rgba(21, 128, 61, 0.25),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+/* 更新箭头样式 */
+.arrow-up {
+  color: #ef4444;
+  font-size: 2.2rem;
+  text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+  transform: translateY(-2px);
+  transition: transform 0.3s ease;
+}
+
+.arrow-down {
+  color: #15803d;
+  font-size: 2.2rem;
+  text-shadow: 0 0 15px rgba(21, 128, 61, 0.6);
+  transform: translateY(2px);
+  transition: transform 0.3s ease;
+}
+
+.exact-card:hover .arrow-up {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.exact-card:hover .arrow-down {
+  transform: translateY(4px);
 }
 
 .card-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start; /* 左右对齐时，顶部对齐 */
+  align-items: flex-start;
 }
 
 /* 左侧区域 */
 .left-part {
   display: flex;
   flex-direction: column;
-  margin-right: 10px; /* 右侧留点间距 */
+  margin-right: 10px;
 }
 
 /* 右侧区域 */
 .right-part {
   display: flex;
   flex-direction: column;
-  text-align: right; 
+  text-align: right;
 }
 
 .diff-row {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  margin-bottom: 10px;
-}
-
-/* 第一行：USD 7.15 ▲ */
-.top-line {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 4px;
-  margin-left: 10px;
+  margin-bottom: 12px;
 }
 
 .big-currency {
-  font-size: 3rem;
-  font-weight: bold;
+  font-size: 3.2rem;
+  font-weight: 800;
   margin-right: 6px;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  letter-spacing: -1px;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .big-diff {
-  font-size: 2rem;
+  font-size: 2.2rem;
+  font-weight: 700;
   margin-right: 8px;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.arrow-up {
-  color: #e60000; /* 红色箭头 */
-  font-size: 2rem;
-}
-.arrow-down {
-  color: #22c55e; /* 绿色箭头 */
-  font-size: 2rem;
-}
-
-/* 第二行：中文货币名称 */
 .zh-currency {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
-  color: #333;
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
   margin-left: 10px;
+  letter-spacing: 1px;
 }
 
-/* 买入/卖出价 */
 .price-line {
-  font-size: 1.2rem;
-  margin: 3px 0;
-  color: #000000;
+  font-size: 1.3rem;
+  margin: 4px 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: #fff;
+  }
 }
 
 .date {
   margin-right: 8px;
   margin-left: 10px;
   font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
 }
 
 /* 趋势弹窗相关 */
@@ -563,21 +656,48 @@ const maxDrawdown = ref("-2.30");
   height: 400px;
   width: 100%;
   margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
+
 .currency-separator {
   color: #6366f1;
   font-weight: bold;
-  margin: 0 8px;
-  font-size: 16px;
+  margin: 0 12px;
+  font-size: 18px;
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
+
 .currency-flag {
   width: 1.5em;
   height: 1.5em;
-  margin-right: 4px;
+  margin-right: 6px;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-.page-title {
-  font-size: 1.8em;
-  font-weight: bold;
-  margin-bottom: 20px;
+
+/* 移除分页样式 */
+.pagination {
+  display: none;
+}
+
+/* 添加响应式设计 */
+@media (max-width: 768px) {
+  .card-list {
+    gap: 20px;
+  }
+  
+  .exact-card {
+    width: calc(100% - 20px);
+  }
+  
+  .big-currency {
+    font-size: 2.8rem;
+  }
+  
+  .big-diff {
+    font-size: 2rem;
+  }
 }
 </style>
