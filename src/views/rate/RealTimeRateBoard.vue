@@ -57,52 +57,6 @@
       :close-on-click-modal="false"
     >
       <div class="trend-content">
-        <el-row :gutter="20" class="trend-controls">
-          <el-col :span="8">
-            <div class="currency-pair">
-              <el-select 
-              v-model="fromCurrency" 
-              class="currency-select" 
-              @change="updateTrendData">
-                <el-option
-                  v-for="currency in availableCurrencies"
-                  :key="currency"
-                  :value="currency"
-                >
-                  <div style="display: flex;align-items: center;">
-                    <span :class="`fi fi-${getCurrencyFlag(currency)}`" class="currency-flag"></span>
-                    {{ currency }}
-                  </div>
-                </el-option>
-              </el-select>
-              <span class="currency-separator">=></span>
-              <el-select v-model="toCurrency" class="currency-select" @change="updateTrendData">
-                <el-option
-                  v-for="currency in availableCurrencies"
-                  :key="currency"
-                  :value="currency"
-                >
-                  <div style="display: flex;align-items: center;">
-                    <span :class="`fi fi-${getCurrencyFlag(currency)}`" class="currency-flag"></span>
-                    {{ currency }}
-                  </div>
-                </el-option>
-              </el-select>
-            </div>
-          </el-col>
-          <el-col :span="8"></el-col>
-          <el-col :span="8">
-            <el-select
-              v-model="trendPeriod"
-              @change="updateTrendData"
-              style="width: 35%;left: 65%;"
-            >
-              <el-option value="week">近一周</el-option>
-              <el-option value="month">近一月</el-option>
-              <el-option value="year">近一年</el-option>
-            </el-select>
-          </el-col>
-        </el-row>
 
         <v-chart class="trend-chart" :option="chartOption" autoresize />
       </div>
@@ -269,40 +223,121 @@ const updateTrendData = () => {
   const rates = trendData.value.map(item => item.rate);
   
   chartOption.value = {
-    tooltip: { trigger: "axis" },
-    dataZoom: [
-      {
-        type: "slider",
-        show: true,
-        xAxisIndex: 0,
-        start: 0,
-        end: 100,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e2e8f0',
+      textStyle: {
+        color: '#1a1a1a'
       },
-      {
-        type: "inside",
-        xAxisIndex: 0,
+      axisPointer: {
+        type: 'line',
+        lineStyle: {
+          color: 'rgba(59, 130, 246, 0.2)',
+          width: 1
+        }
+      }
+    },
+    grid: {
+      left: '5%',
+      right: '5%',
+      top: '5%',
+      bottom: '10%',
+      containLabel: true
+    },
+    dataZoom: [{
+      type: "slider",
+      show: true,
+      xAxisIndex: 0,
+      start: 0,
+      end: 100,
+      backgroundColor: '#f8fafc',
+      dataBackground: {
+        lineStyle: {
+          color: '#e2e8f0'
+        },
+        areaStyle: {
+          color: '#f1f5f9'
+        }
       },
-    ],
+      fillerColor: 'rgba(59, 130, 246, 0.1)',
+      borderColor: '#e2e8f0',
+      handleStyle: {
+        color: '#3b82f6'
+      }
+    }, {
+      type: "inside",
+      xAxisIndex: 0
+    }],
     xAxis: {
       type: "category",
       data: dates,
-      axisLabel: { rotate: 45 }
+      axisLabel: {
+        rotate: 45,
+        color: '#64748b',
+        fontSize: 12
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#e2e8f0'
+        }
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: '#f1f5f9'
+        }
+      }
     },
     yAxis: {
       type: "value",
-      axisLabel: { formatter: (value: number) => value.toFixed(4) }
-    },
-    series: [
-      {
-        name: "累计收益率",
-        type: "line",
-        data: rates,
-        smooth: true,
-        lineStyle: { width: 2 }
+      axisLabel: {
+        formatter: (value: number) => value.toFixed(4),
+        color: '#64748b',
+        fontSize: 12
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#e2e8f0'
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#f1f5f9'
+        }
       }
-    ]
+    },
+    series: [{
+      name: "汇率趋势",
+      type: "line",
+      data: rates,
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 6,
+      lineStyle: {
+        width: 3,
+        color: '#3b82f6'
+      },
+      itemStyle: {
+        color: '#3b82f6',
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          {
+            offset: 0,
+            color: 'rgba(59, 130, 246, 0.2)'
+          },
+          {
+            offset: 1,
+            color: 'rgba(59, 130, 246, 0.02)'
+          }
+        ])
+      }
+    }]
   };
-
 
   ElMessage.success("趋势数据已更新");
 }
@@ -411,27 +446,73 @@ const maxDrawdown = ref("-2.30");
 </script>
 
 <style scoped>
-/* 外层容器 - 使用更深邃的背景色 */
+/* 外层容器 - 使用更现代的渐变背景 */
 .rate-container {
   padding: 20px;
   margin: 0;
-  position: absolute;
-  top: 6%;
+  position: fixed;
+  top: 6vh;          /* 改为 6vh，与顶部导航栏高度对应 */
   left: 0;
   right: 0;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #000033 0%, #000056 100%);
+  bottom: 0;
+  background: linear-gradient(135deg, #001a4d 0%, #002687 100%);
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* 页面标题样式优化 */
+/* 添加科技感网格背景 */
+.rate-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
+  background-size: 25px 25px;  /* 稍微调小网格大小 */
+  pointer-events: none;
+}
+
+/* 优化标题样式 */
 .page-title {
-  color: #fff;
-  font-size: 2.4rem;
-  font-weight: 600;
+  color: #ffffff;  /* 纯白色 */
+  font-size: 1.8rem;
+  font-weight: 500;
   text-align: center;
-  margin: 20px 0 40px;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+  margin: 24px 0 40px;
+  position: relative;
+  display: inline-block;
+  padding: 0 40px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);  /* 添加阴影提升立体感 */
+  letter-spacing: 2px;
+}
+
+/* 修改标题装饰 */
+.page-title::before,
+.page-title::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 25px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.8);  /* 纯白色装饰线 */
+  transform: translateY(-50%);
+}
+
+.page-title::before {
+  left: 0;
+}
+
+.page-title::after {
+  right: 0;
+}
+
+/* 添加标题悬浮效果 */
+.page-title:hover {
+  transform: scale(1.02);
+  transition: all 0.3s ease;
 }
 
 /* 卡片列表布局优化 */
@@ -439,40 +520,43 @@ const maxDrawdown = ref("-2.30");
   margin: 20px 40px;
   display: flex;
   flex-wrap: wrap;
-  gap: 30px;
+  gap: 40px 50px;    /* 调整间距：垂直间距40px，水平间距50px */
   padding-bottom: 100px;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
-/* 卡片样式优化 */
+/* 卡片样式优化 - 增加科技感 */
 .exact-card {
   width: 14rem;
   color: #fff;
   border-radius: 16px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);  /* 降低透明度 */
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);  /* 调整阴影 */
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
 }
 
-/* 上涨和下跌卡片样式优化 */
+/* 上涨和下跌卡片样式优化 - 更暗沉的渐变 */
 .trend-up {
   background: linear-gradient(165deg, 
-    rgba(56, 189, 248, 0.95) 0%,    /* 天蓝色开始 */
-    rgba(59, 130, 246, 0.9) 60%,    /* 渐变到亮蓝色 */
-    rgba(239, 68, 68, 0.85) 100%    /* 明亮的红色 */
+    rgba(56, 189, 248, 0.75) 0%,
+    rgba(59, 130, 246, 0.7) 70%,
+    rgba(239, 68, 68, 0.65) 100%
   );
-  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15);
 }
 
 .trend-down {
   background: linear-gradient(165deg, 
-    rgba(56, 189, 248, 0.95) 0%,    /* 天蓝色开始 */
-    rgba(59, 130, 246, 0.9) 60%,    /* 渐变到亮蓝色 */
-    rgba(34, 197, 94, 0.85) 100%    /* 明亮的绿色 */
+    rgba(56, 189, 248, 0.75) 0%,
+    rgba(59, 130, 246, 0.7) 70%,
+    rgba(34, 197, 94, 0.65) 100%
   );
-  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15);
 }
 
 /* 更新箭头颜色 */
@@ -488,68 +572,50 @@ const maxDrawdown = ref("-2.30");
   text-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
 }
 
-/* 卡片悬浮效果优化 */
-.trend-up:hover {
-  box-shadow: 0 20px 40px rgba(239, 68, 68, 0.2);
-}
-
-.trend-down:hover {
-  box-shadow: 0 20px 40px rgba(34, 197, 94, 0.2);
-}
-
-/* 差值行背景微调 */
-.diff-row {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(5px);
-  margin-bottom: 12px;
-  padding: 4px 8px;
-}
-
-/* 货币代码样式优化 */
-.big-currency {
-  font-size: 2.2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
-}
-
-/* 中文货币名称样式优化 */
-.zh-currency {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 4px 0;
-}
-
-/* 日期样式优化 */
 .date {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);  /* 降低亮度 */
   font-weight: 400;
 }
 
-/* 价格行样式优化 */
+/* 调整差值行背景 */
+.diff-row {
+  background: rgba(255, 255, 255, 0.06);  /* 降低透明度 */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+/* 调整价格行样式 */
 .price-line {
   margin: 8px 0;
   padding: 4px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.price-line:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);  /* 降低边框亮度 */
 }
 
 .price-label {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.6);  /* 降低亮度 */
   margin-bottom: 4px;
 }
 
 .price-value {
   font-size: 1.1rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.85);  /* 降低亮度 */
+}
+
+/* 货币代码样式优化 - 添加科技感字体效果 */
+.big-currency {
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffffff 30%, #a5f3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
 }
 
 /* 差值和箭头样式优化 */
@@ -572,7 +638,7 @@ const maxDrawdown = ref("-2.30");
 @media (max-width: 768px) {
   .card-list {
     margin: 20px;
-    gap: 30px;
+    gap: 40px;       /* 在移动端保持一致的间距 */
   }
   
   .exact-card {
@@ -581,34 +647,153 @@ const maxDrawdown = ref("-2.30");
   }
 }
 
-/* 趋势弹窗相关 */
+/* 趋势弹窗样式优化 */
+:deep(.el-dialog) {
+  background: #ffffff;
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  max-width: 1200px;
+  margin: 15vh auto !important;  /* 添加上边距，并使用 !important 确保覆盖默认样式 */
+}
+
+:deep(.el-dialog__header) {
+  padding: 20px 24px;
+  margin: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #ffffff;
+}
+
+:deep(.el-dialog__title) {
+  color: #1a1a1a;
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: #666666;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+  color: #1a1a1a;
+  background: #ffffff;
+  max-height: 60vh;  /* 限制最大高度 */
+  overflow-y: auto;  /* 如果内容过多则显示滚动条 */
+}
+
+/* 美化弹窗滚动条 */
+:deep(.el-dialog__body::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar-track) {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar-thumb) {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar-thumb:hover) {
+  background: #94a3b8;
+}
+
+/* 控制区域样式优化 */
+.trend-controls {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Select 下拉框样式优化 */
+:deep(.el-select .el-input__wrapper) {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+  border-color: #3b82f6;
+}
+
+:deep(.el-select .el-input__inner) {
+  color: #1a1a1a;
+}
+
+/* 货币对选择器样式 */
+.currency-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 分隔符样式优化 */
+.currency-separator {
+  color: #3b82f6;
+  font-size: 1.2rem;
+  margin: 0 10px;
+}
+
+/* 图表容器样式优化 */
 .trend-chart {
-  height: 400px;
+  height: 350px;
   width: 100%;
   margin-top: 20px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
 }
 
-.currency-separator {
-  color: #6366f1;
-  font-weight: bold;
-  margin: 0 12px;
-  font-size: 18px;
-  text-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
-}
+/* 优化图表样式 */
+:deep(.trend-chart) {
+  /* 坐标轴颜色 */
+  --el-color-axis: rgba(255, 255, 255, 0.65);
+  
+  .echarts-tooltip {
+    background: rgba(0, 26, 77, 0.95) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    color: #ffffff;
+  }
 
-.currency-flag {
-  width: 1.5em;
-  height: 1.5em;
-  margin-right: 6px;
-  border-radius: 2px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  /* 坐标轴文字颜色 */
+  path {
+    stroke: var(--el-color-axis);
+  }
+
+  text {
+    fill: var(--el-color-axis);
+  }
+
+  /* 网格线颜色 */
+  .el-line {
+    stroke: rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* 移除分页样式 */
 .pagination {
   display: none;
+}
+
+/* 调整 header 容器样式 */
+.header {
+  margin: 0;
+  padding: 8px 0;           /* 添加适当的内边距 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
