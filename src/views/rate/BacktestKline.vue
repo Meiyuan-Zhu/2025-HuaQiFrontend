@@ -28,6 +28,7 @@
   import { ref, watch, onMounted, nextTick } from "vue";
   import axios from "axios";
   import * as echarts from "echarts";
+  import { resampleData } from "./resampleData";
   
   /**
    * 父组件通过props传入
@@ -100,10 +101,18 @@
       // 筛选 >= startDate
       const filtered = fullData.filter((item: any) => item.date >= startDate);
       
+      let mode = 'none';
+      if (props.timeRange === '3Y') {
+        mode = 'week';
+      } else if (props.timeRange === '1Y') {
+        mode = 'week';
+      }
+      const aggregated = resampleData(filtered,mode);
+
       // 组装 candlestickData
       const candlestickData: (string|number)[][] = [];
       const dateArr: string[] = [];
-      filtered.forEach((item: any) => {
+      aggregated.forEach((item: any) => {
         const date = item.date;
         // open,close,high,low
         candlestickData.push([date, item.true.open, item.true.close, item.true.low, item.true.high]);

@@ -23,6 +23,7 @@
 import { ref, watch, onMounted, nextTick } from "vue";
 import axios from "axios";
 import * as echarts from "echarts";
+import { resampleData } from "./resampleData";
 
 /** 父组件通过 props 传入 currencyPair, strategy, timeRange */
 const props = defineProps<{
@@ -39,6 +40,7 @@ let lineChartInstances: echarts.ECharts[] = [];
 const loadedData = ref<Array<{
   title: string;
   lineData: [string, number][]; // [date, pred]
+  markPoints: any[];
   dates: string[];
 }>>([]);
 
@@ -92,21 +94,50 @@ for (const r of results) {
     const fullData = r.raw.data;
     // 筛选 >= startDate
     const filtered = fullData.filter((item: any) => item.date >= startDate);
-
+    let mode = 'none';
+    if (props.timeRange === '3Y') {
+      mode = 'month';
+    } else if (props.timeRange === '1Y') {
+      mode = 'week';
+    }
+    const aggregated = resampleData(filtered,mode);
+    
     // 生成 lineData: [ [date, pred], ... ]
     const lineData: [string, number][] = [];
     const dateArr: string[] = [];
-    filtered.forEach((item: any) => {
+    const markPoints: any[] = [];
+    aggregated.forEach((item: any) => {
       const date = item.date;
       const predVal = item.pred; // 预测值
       lineData.push([date, predVal]);
       dateArr.push(date);
+
+      if (item.signal == "buy") {
+        console.log("buy", date, predVal);
+        
+        markPoints.push({
+          name: "Buy",
+          coord: [date, predVal],
+          value: predVal,
+          itemStyle: { color: "red" },
+          label: { show: true, formatter: "Buy" } // 修改此处
+        });
+      } else if (item.signal === "sell") {
+        markPoints.push({
+          name: "Sell",
+          coord: [date, predVal],
+          value: predVal,
+          itemStyle: { color: "green" },
+          label: { show: true, formatter: "Sell" } // 修改此处
+        });
+      }
     });
 
     newData.push({
       title: r.title,
       lineData,
-      dates: dateArr
+      dates: dateArr,
+      markPoints
     });
 }
 loadedData.value = newData;
@@ -145,7 +176,8 @@ function renderCharts() {
       ],
       xAxis: {
         type: "category",
-        data: d.dates
+        data: d.dates,
+        axisLabel: { rotate: 45 }
       },
       yAxis: {
         type: "value",
@@ -157,7 +189,12 @@ function renderCharts() {
           type: "line",
           encode: { x: 0, y: 1 },
           data: d.lineData,
-          smooth: true
+          smooth: true,
+          markPoint: {
+            symbol: 'pin',
+            symbolSize: 50,
+            data: d.markPoints
+          }
         }
       ]
     };

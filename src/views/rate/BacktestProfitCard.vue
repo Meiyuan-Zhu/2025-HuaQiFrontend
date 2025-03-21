@@ -19,7 +19,7 @@
   </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted} from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 
 // 定义收益数据类型
@@ -105,6 +105,11 @@ async function loadYieldData() {
     }
   }
 }
+
+// 监听 props 的变化，并在变化时重新加载收益数据
+watch(() => props, () => {
+  loadYieldData();
+}, { deep: true });
 
 onMounted(() => {
   loadYieldData();
