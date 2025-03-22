@@ -1,7 +1,7 @@
 <script setup lang="ts" >
 import * as echarts from 'echarts'
 import { ref, reactive, watch, onMounted, nextTick } from 'vue'
-import { getCurrencyFlag, parseCurrency, parseModel } from "../../utils/index";
+import { getCurrencyFlag, parseCurrency } from "../../utils/index";
 import { Download } from "@element-plus/icons-vue"   //图标
 import * as jspdf from 'jspdf';
 import "../../assets/cnfont";
