@@ -49,6 +49,20 @@ export const parseCurrency = (currency: string) => {
     }
     return "中"
 }
+export const parseCurrencyFullName = (currency: string) => {
+    if (currency === 'USD') {
+        return "美元"
+    } else if (currency === 'EUR') {
+        return "欧元"
+    } else if (currency === 'AUD') {
+        return "澳元"
+    } else if (currency === 'JPY') {
+        return "日元"
+    } else if (currency === 'CNY') {
+        return "人民币"
+    }
+    return "人民币"
+}
   
 //将模型转化为数字
 export const parseModel = (model: string) => {
