@@ -34,7 +34,7 @@ deploy-job:      # This job runs in the deployment stage.
     - echo "Container already exists"
     - docker stop erps-frontend;
     - docker rm erps-frontend;
-    - docker rmi $ACR_SERVER/crsmis/erps-frontend:1.0;
+    # - docker rmi $ACR_SERVER/crsmis/erps-frontend:1.0;
     - else
     - echo "Container does not exist"
     - fi
