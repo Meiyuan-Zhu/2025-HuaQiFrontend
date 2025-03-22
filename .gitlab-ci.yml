@@ -30,7 +30,7 @@ deploy-job:      # This job runs in the deployment stage.
   dependencies:
     - build-job
   script:
-    - if docker ps -a | grep -q erps-frontend &> /dev/null; then
+    - if docker ps -a | grep erps-frontend &> /dev/null; then
     - echo "Container already exists"
     - docker stop erps-frontend;
     - docker rm erps-frontend;
