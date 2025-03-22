@@ -68,7 +68,6 @@
 import { ref, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
-import backgroundImage from "../../assets/background2.webp";
 
 // ECharts & Vue-ECharts
 import * as echarts from "echarts";
@@ -91,8 +90,6 @@ use([
   LegendComponent
 ]);
 
-import { getCurrencyFlag } from "../../utils/index";
-
 
 // ================== 接口定义 ================== //
 interface RateItem {
@@ -102,9 +99,9 @@ interface RateItem {
   fromRate: number; 
   toRate: number;   
   updateTime: string; //date
-  buy_price: number;
-  sell_price: number;
-  change_rate: number;
+  buy_price?: number;
+  sell_price?: number;
+  change_rate?: number;
 }
 
 interface TrendDataItem {
@@ -120,32 +117,35 @@ const selectedTimeRange = ref("1W");
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");
 const toCurrency = ref("CNY");
-const trendPeriod = ref("week");
 const trendData = ref<TrendDataItem[]>([]);
 
 // 示例汇率列表
 const rateList = ref<RateItem[]>([]);
 
-// 所有可选货币
-const availableCurrencies = ["CNY", "USD", "EUR", "GBP", "JPY"];
-
 // ================== 过滤 ================== //
 const filteredRates = computed(() => {
   return rateList.value.map((r, index) => {
-    const diff = r.change_rate;
-    const isUp = diff >= 0;
+    const buy_price = r.buy_price ?? 0;
+    const sell_price = r.sell_price ?? 0;
+    const change_rate = r.change_rate ?? 0;
+    const toRate = r.toRate ?? 0;
     return {
+      ...r, // 包括原有的 id, currency, currency_name, updateTime 等
+        // 如果原始值可能为 undefined，则补充默认值
+      buy_price,
+      sell_price,
+      change_rate,
       id: r.id || index + 1,
       currency: r.currency,
       currency_name: r.currency_name,
       updateTime: r.updateTime,
-      fromRate: r.toRate - r.change_rate,
-      toRate: r.toRate,
-      diffVal: diff.toFixed(2),
-      isUp,
-      buy: r.buy_price.toFixed(2),
-      sell: r.sell_price.toFixed(2),
-      mid: r.toRate.toFixed(2),
+      fromRate: r.toRate - change_rate,
+      toRate,
+      diffVal: change_rate.toFixed(2),
+      isUp: change_rate >= 0,
+      buy: buy_price.toFixed(2),
+      sell: sell_price.toFixed(2),
+      mid: toRate.toFixed(2),
     };
   }).filter((item) =>
     item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -430,18 +430,6 @@ watch([baseCurrency, selectedTimeRange], () => {
 onMounted(() => {
   initChart();
 });
-
-// 下方收益率图（阶段二）
-const strategyList = [
-  { name: "Strategy 1", value: "A" },
-  { name: "Strategy 2", value: "B" },
-  { name: "Strategy 3", value: "C" },
-];
-const selectedStrategy = ref(strategyList[0].value);
-const cumulativeYield = ref("5.20");
-const annualYield = ref("4.10");
-const maxDrawdown = ref("-2.30");
-
 
 </script>
 

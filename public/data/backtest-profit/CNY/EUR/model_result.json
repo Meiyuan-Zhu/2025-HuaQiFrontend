@@ -1,0 +1,46 @@
+{
+    "currency_pair": "中欧",
+    "Strategy": "model_result",
+    "data": [
+        {
+            "period": "1Week",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Month",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Season",
+            "Cumulative_Return": -0.001704566937531,
+            "Annualized_Return": -0.006745599932662,
+            "Sharpe_Ratio": -1.99183114353296,
+            "Maximum_Drawdown": 0.001704566937531,
+            "Calmar_Ratio": -3.95736875105304
+        },
+        {
+            "period": "1Year",
+            "Cumulative_Return": 0.000810377365352,
+            "Annualized_Return": 0.000808162325092,
+            "Sharpe_Ratio": 0.27712775506665,
+            "Maximum_Drawdown": 0.001708861148209,
+            "Calmar_Ratio": 0.472924512292134
+        },
+        {
+            "period": "3Year",
+            "Cumulative_Return": 0.07127785888397,
+            "Annualized_Return": 0.023194700300335,
+            "Sharpe_Ratio": 1.21724559295466,
+            "Maximum_Drawdown": 0.01822470920003,
+            "Calmar_Ratio": 1.27270619496616
+        }
+    ]
+}

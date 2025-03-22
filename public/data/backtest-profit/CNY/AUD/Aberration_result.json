@@ -1,0 +1,46 @@
+{
+    "currency_pair": "中澳",
+    "Strategy": "Aberration_result",
+    "data": [
+        {
+            "period": "1Week",
+            "Cumulative_Return": -0.011577667804286,
+            "Annualized_Return": -0.455133552543621,
+            "Sharpe_Ratio": -17.2722020017834,
+            "Maximum_Drawdown": 0.011187177862706,
+            "Calmar_Ratio": -40.6835001757572
+        },
+        {
+            "period": "1Month",
+            "Cumulative_Return": -0.023544020423027,
+            "Annualized_Return": -0.244614706527813,
+            "Sharpe_Ratio": -7.48806902855684,
+            "Maximum_Drawdown": 0.023544020423027,
+            "Calmar_Ratio": -10.3896744112815
+        },
+        {
+            "period": "1Season",
+            "Cumulative_Return": -0.05371128463597,
+            "Annualized_Return": -0.196702377644018,
+            "Sharpe_Ratio": -5.73370370603146,
+            "Maximum_Drawdown": 0.05371128463597,
+            "Calmar_Ratio": -3.66221696198803
+        },
+        {
+            "period": "1Year",
+            "Cumulative_Return": -0.071991904247174,
+            "Annualized_Return": -0.071802442395839,
+            "Sharpe_Ratio": -1.44072636811175,
+            "Maximum_Drawdown": 0.074487767351555,
+            "Calmar_Ratio": -0.963949450343408
+        },
+        {
+            "period": "3Year",
+            "Cumulative_Return": -0.101175479488306,
+            "Annualized_Return": -0.034899827930729,
+            "Sharpe_Ratio": -0.525962740542773,
+            "Maximum_Drawdown": 0.146935705874887,
+            "Calmar_Ratio": -0.237517679742493
+        }
+    ]
+}

@@ -1,363 +1,606 @@
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
-import { getCurrencyFlag } from "../../utils/index";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ElSelect, ElOption } from "element-plus";
+import "element-plus/es/components/select/style/css";
+import "element-plus/es/components/option/style/css";
+import BacktestKline from "./BacktestKline.vue"; 
+import BacktestPredLine from "./BacktestPredLine.vue";
+import BacktestNetWorth from "./BacktestNetWorth.vue";
+import BacktestProfitCard from "./BacktestProfitCard.vue";
+import axios from "axios";
 
-// 当前货币对
-const currencyPair = reactive({
-  from: 'CNY',
-  to: 'USD'
-})
-
-// 可供选择的货币对
-const currencyList = [
-  { from: 'CNY', to: 'USD' },
-  { from: 'CNY', to: 'EUR' },
-  { from: 'CNY', to: 'JPY' },
-  { from: 'CNY', to: 'AUD' },
-]
-
-// 选中的货币对
-const selectedCurrency = ref(`${currencyPair.from}/${currencyPair.to}`);
-const selectCurrency = (value: string) => {
-  const [from, to] = value.split('/');
-  currencyPair.from = from;
-  currencyPair.to = to;
-  console.log('选中的货币对：', currencyPair);
-}
-watch(currencyPair, () => {
-  selectedCurrency.value = `${currencyPair.from}/${currencyPair.to}`;
-});
-
-// 时间跨度选择，默认 "1M"（1月）
-const selectedTimeRange = ref("1M");
-const timeRanges = ["1W", "1M", "1Q", "1Y", "3Y"];
-
-// 根据时间范围返回对应数据点数量
-const getCountFromTimeRange = (timeRange: string) => {
-  switch (timeRange) {
-    case "1W": return 7;
-    case "1M": return 30;
-    case "1Q": return 90;
-    case "1Y": return 365;
-    case "3Y": return 365 * 3;
-    default: return 30;
+const currencyPairs = [
+  {
+    label: "CNY/JPY",
+    displayName:"人民币/日元",
+    flagFrom: "cn",
+    flagTo: "jp",
+  },
+  {
+    label: "CNY/EUR",
+    displayName: "人民币/欧元",
+    flagFrom: "cn",
+    flagTo: "eu"
+  },
+  {
+    label: "CNY/AUD",
+    displayName: "人民币/澳大利亚元",
+    flagFrom: "cn",
+    flagTo: "au"
+  },
+  {
+    label: "CNY/USD",
+    displayName: "人民币/美元",
+    flagFrom: "cn",
+    flagTo: "us"
   }
-}
-
-// 模拟的预测收益数据（假数据）
-const fakeProfit = ref(5.2);
-
-// ECharts K线图
-const chartRef = ref<HTMLElement | null>(null);
-let chartInstance: echarts.ECharts | null = null;
-const initChart = () => {
-  if (chartRef.value) {
-    chartInstance = echarts.init(chartRef.value);
-    updateChart();
-  }
-};
-const updateChart = () => {
-  if (!chartInstance) return;
-
-  const count = getCountFromTimeRange(selectedTimeRange.value);
-  const dates = [];
-  const dataReal = [];  
-  const dataPred = [];  
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-  const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-  // 自定义格式化
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
-  const day = String(date.getDate()).padStart(2, '0');        // 补零
-  dates.push(`${year}-${month}-${day}`); // e.g. "2025-03-18"
-
-  dataReal.push((Math.random() * 10 + 90).toFixed(2));
-  dataPred.push((Math.random() * 10 + 90).toFixed(2));
-}
-
-  const option = {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['真实汇率', '预测汇率'] },
-    xAxis: { type: 'category', data: dates },
-    yAxis: { type: 'value' },
-    dataZoom: [
-    {
-      type: 'slider',
-      show: true,
-      xAxisIndex: 0,
-      start: 0,
-      end: 100
-    },
-    {
-      type: 'inside',     // 内部滚轮缩放
-      xAxisIndex: 0, 
-      // 也可以设置 start, end
-    }
-    ],
-    series: [
-      {
-        name: '真实汇率',
-        type: 'line',
-        data: dataReal,
-        smooth: true,
-        markPoint: { data: [{ type: 'max', name: 'Buy' }, { type: 'min', name: 'Sell' }] }
-      },
-      {
-        name: '预测汇率',
-        type: 'line',
-        data: dataPred,
-        smooth: true
-      }
-    ]
-  };
-  chartInstance.setOption(option);
-};
-watch([selectedCurrency, selectedTimeRange], () => {
-  nextTick(() => { updateChart(); });
-});
-onMounted(() => { initChart(); });
-
-// 阶段二：回测收益数据
-const strategyList = [
-  { name: 'Strategy 1', value: 'A' },
-  { name: 'Strategy 2', value: 'B' },
-  { name: 'Strategy 3', value: 'C' },
 ];
-const selectedStrategy = ref(strategyList[0].value);
-const cumulativeYield = ref('5.20');
-const annualYield = ref('4.10');
-const maxDrawdown = ref('-2.30');
-const yieldChartRef = ref<HTMLElement | null>(null);
-let yieldChartInstance: echarts.ECharts | null = null;
-const initYieldChart = () => {
-  if (yieldChartRef.value) {
-    yieldChartInstance = echarts.init(yieldChartRef.value);
-    updateYieldChart();
-  }
-};
-const updateYieldChart = () => {
-  if (!yieldChartInstance) return;
-  const count = getCountFromTimeRange(selectedTimeRange.value);
-  const dates = [];
-  const yieldData = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-    // 与上方图表相同的日期格式, e.g. "2025-03-19"
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    dates.push(`${year}-${month}-${day}`);
 
-    yieldData.push((Math.random() * 2 + 4).toFixed(2));
-  }
-  const option = {
-    tooltip: { trigger: 'axis' },
-    dataZoom: [
-      {
-        type: 'slider',
-        show: true,
-        xAxisIndex: 0,
-        start: 0,
-        end: 100
-      },
-      {
-        type: 'inside', // 滚轮/手势缩放
-        xAxisIndex: 0
-      }
-    ],
-    xAxis: { type: 'category', data: dates },
-    yAxis: { type: 'value' },
-    series: [{
-      name: '累计收益率',
-      type: 'line',
-      data: yieldData,
-      smooth: true,
-      lineStyle: { width: 2 }
-    }]
-  };
-  yieldChartInstance.setOption(option);
-};
-watch([selectedStrategy, selectedTimeRange], () => {
-  cumulativeYield.value = (Math.random() * 10).toFixed(2);
-  annualYield.value = (Math.random() * 10).toFixed(2);
-  maxDrawdown.value = (-Math.random() * 5).toFixed(2);
-  nextTick(() => { updateYieldChart(); });
+const selectedPair = ref("CNY/USD");
+
+// 根据 selectedPair，找对应的对象，用于显示国旗
+const selectedPairObj = computed(() =>
+  currencyPairs.find((p) => p.label === selectedPair.value)
+);
+
+/* 策略 */
+const strategies = [
+  "Aberration",
+  "DualThrust",
+  "MACD",
+  "Model",
+  "Momentum",
+  "Window"
+];
+
+const selectedStrategy = ref("Aberration");
+
+/* 时间跨度 */
+const timeRanges = ["1W", "1M", "1S", "1Y", "3Y"];
+const selectedTimeRange = ref("1M");
+
+// 添加实时汇率数据的状态
+const currentRate = ref({
+  rate: 0,
+  change: 0,
+  changePercent: 0
 });
-onMounted(() => { initYieldChart(); });
+
+// 获取实时汇率数据的函数
+const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_all_forex?apifoxApiId=273598691";
+
+async function fetchCurrentRate() {
+  try {
+    const res = await axios.get(ALL_FOREX_API);
+    if (res.data && res.data.data) {
+      // 找到对应的货币对数据
+      const rateData = res.data.data.find((item: any) => {
+        // 从 selectedPair (如 "CNY/JPY") 中提取目标货币代码
+        const targetCurrency = selectedPair.value.split('/')[1];
+        return item.currency_code === targetCurrency;
+      });
+      
+      if (rateData) {
+        // 使用中间价作为当前汇率
+        const rate = Number(rateData.central_parity);
+        const change = Number(rateData.change_rate);
+        
+        currentRate.value = {
+          rate: rate,
+          change: change,
+          // 计算涨跌百分比
+          changePercent: ((change / rate) * 100)
+        };
+      }
+    }
+  } catch (error) {
+    console.error("获取实时汇率数据失败", error);
+    // 设置默认值避免显示 NaN
+    currentRate.value = {
+      rate: 0,
+      change: 0,
+      changePercent: 0
+    };
+  }
+}
+
+// 监听货币对变化时重新获取数据
+watch(selectedPair, () => {
+  fetchCurrentRate();
+});
+
+// 添加定时刷新功能
+let refreshTimer: number;
+
+onMounted(() => {
+  fetchCurrentRate();
+  // 每60秒刷新一次数据
+  refreshTimer = window.setInterval(fetchCurrentRate, 60000);
+});
+
+onUnmounted(() => {
+  // 组件卸载时清除定时器
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
+});
 </script>
-
 <template>
-    <el-container>
-      <!-- Header 区域 -->
-      <el-header class="header-area">
-        <h2 class="page-title">汇率回测</h2>
-        <el-row :gutter="20" class="header-row">
-          <!-- 货币对选择 -->
-          <el-col :span="8">
-            <el-select v-model="selectedCurrency" placeholder="选择货币对" @change="selectCurrency">
-              <el-option
-                v-for="(item, index) in currencyList"
-                :key="index"
-                :label="`${item.from}/${item.to}`"
-                :value="`${item.from}/${item.to}`">
-                <template #default="{ label }">
-                  <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
-                  <span class="separator">/</span>
-                  <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
-                  <span style="padding: 2px;"></span>
-                  <span>{{ item.from }}</span>
-                  <span class="separator">/</span>
-                  <span>{{ item.to }}</span>
-                </template>
-              </el-option>
-            </el-select>
-          </el-col>
-          <!-- 时间跨度选择 -->
-          <el-col :span="8">
-            <el-radio-group v-model="selectedTimeRange">
-              <el-radio-button label="1W">1周</el-radio-button>
-              <el-radio-button label="1M">1月</el-radio-button>
-              <el-radio-button label="1Q">1季</el-radio-button>
-              <el-radio-button label="1Y">1年</el-radio-button>
-              <el-radio-button label="3Y">3年</el-radio-button>
-            </el-radio-group>
-          </el-col>
-        </el-row>
-      </el-header>
+  <div class="backtest-page">
+    <!-- 页面标题区 -->
+    <div class="page-header">
+      <h1 class="page-title">汇率回测</h1>
+    </div>
 
-      <!-- K线图展示区域 -->
-      <el-main class="chart-area">
-        <div ref="chartRef" class="kline-chart"></div>
-      </el-main>
-
-      <!-- 回测收益数据区域 -->
-      <el-footer class="profit-area">
-        <!-- 策略选择下拉框 -->
-        <el-row :gutter="20" class="strategy-row">
-          <el-col :span="12">
-            <el-select v-model="selectedStrategy" placeholder="选择策略">
-              <el-option
-                v-for="(strategy, index) in strategyList"
-                :key="index"
-                :label="strategy.name"
-                :value="strategy.value">
-              </el-option>
-            </el-select>
-          </el-col>
-        </el-row>
-
-        <!-- 收益率展示卡片 -->
-        <el-card class="profit-card">
-          <div class="profit-content">
-            <span>累计收益率: </span>
-            <span class="profit-value">{{ cumulativeYield }}%</span>
+    <!-- 顶部信息区 -->
+    <div class="top-section">
+      <div class="spot-rate-card">
+        <div class="currency-display">
+          <div class="flags-wrapper">
+            <span :class="`fi fi-${selectedPairObj?.flagFrom}`" class="currency-flag"></span>
+            <span class="exchange-arrow">→</span>
+            <span :class="`fi fi-${selectedPairObj?.flagTo}`" class="currency-flag"></span>
           </div>
-          <div class="profit-content">
-            <span>年化收益率: </span>
-            <span class="profit-value">{{ annualYield }}%</span>
+          <div class="pair-info">
+            <div class="pair-name">{{ selectedPairObj?.displayName }}</div>
+            <div class="pair-label">{{ selectedPair }}</div>
           </div>
-          <div class="profit-content">
-            <span>最大回撤: </span>
-            <span class="profit-value">{{ maxDrawdown }}%</span>
+        </div>
+        <div class="rate-info">
+          <div class="current-rate">{{ currentRate.rate.toFixed(4) }}</div>
+          <div class="rate-change">
+            <span class="change-value" :class="{
+              'up': currentRate.change > 0,
+              'down': currentRate.change < 0,
+              'neutral': currentRate.change === 0
+            }">
+              {{ currentRate.change > 0 ? '+' : '' }}{{ currentRate.change.toFixed(4) }}
+            </span>
+            <span class="change-percent" :class="{
+              'up': currentRate.change > 0,
+              'down': currentRate.change < 0,
+              'neutral': currentRate.change === 0
+            }">
+              {{ currentRate.change > 0 ? '+' : '' }}{{ currentRate.changePercent.toFixed(2) }}%
+            </span>
           </div>
-        </el-card>
+        </div>
+      </div>
+      
+      <div class="control-panel">
+        <!-- 货币对选择卡片 -->
+        <div class="control-card">
+          <div class="card-title">货币对</div>
+          <el-select 
+            v-model="selectedPair" 
+            placeholder="选择货币对" 
+            class="select-control">
+            <el-option
+              v-for="(pair, index) in currencyPairs"
+              :key="index"
+              :label="pair.label"
+              :value="pair.label">
+              {{ pair.displayName }}
+            </el-option>
+          </el-select>
+        </div>
 
-        <!-- 收益率曲线图 -->
-        <div ref="yieldChartRef" class="yield-chart"></div>
-      </el-footer>
-    </el-container>
+        <!-- 策略选择卡片 -->
+        <div class="control-card">
+          <div class="card-title">交易策略</div>
+          <el-select
+            v-model="selectedStrategy"
+            placeholder="请选择策略"
+            class="select-control">
+            <el-option
+              v-for="str in strategies"
+              :key="str"
+              :label="str"
+              :value="str">
+            </el-option>
+          </el-select>
+        </div>
 
+        <!-- 时间跨度选择卡片 -->
+        <div class="control-card">
+          <div class="card-title">时间跨度</div>
+          <div class="time-selector">
+            <button 
+              v-for="range in timeRanges" 
+              :key="range"
+              :class="['time-btn', { active: selectedTimeRange === range }]"
+              @click="selectedTimeRange = range">
+              {{ range }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <div class="main-content">
+      <!-- 图表分析区域 -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <h3>技术分析</h3>
+          <div class="section-tools">
+            <!-- 这里可以添加一些工具按钮 -->
+          </div>
+        </div>
+        <div class="charts-wrapper">
+          <div class="chart-container main">
+            <BacktestKline
+              :currencyPair="selectedPair"
+              :strategy="selectedStrategy"
+              :timeRange="selectedTimeRange"
+            />
+          </div>
+          <div class="chart-container main">
+            <BacktestPredLine
+              :currencyPair="selectedPair"
+              :strategy="selectedStrategy"
+              :timeRange="selectedTimeRange"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 回测结果区域 -->
+      <div class="results-section">
+        <div class="section-header">
+          <h3>回测结果</h3>
+        </div>
+        <div class="charts-wrapper">
+          <div class="chart-container sub">
+            <BacktestProfitCard
+              :currencyPair="selectedPair"
+              :strategy="selectedStrategy"
+              :timeRange="selectedTimeRange"
+            />
+          </div>
+          <div class="chart-container sub">
+            <BacktestNetWorth
+              :currencyPair="selectedPair"
+              :strategy="selectedStrategy"
+              :timeRange="selectedTimeRange"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-/* 外层统一滚动容器 */
-.prediction-board {
-  width: 90%;
-  margin: 20px auto;
+.backtest-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f0f2f5;
   padding: 20px;
-  height: 100vh;          /* 固定高度为视口高度 */
-  overflow-y: auto;       /* 仅外层产生滚动条 */
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
 }
 
-/* 重置 Element Plus 内部容器默认高度 */
-.el-container,
-.el-header,
-.el-main,
-.el-footer {
-  height: auto !important;
-  overflow: visible !important;
+.page-header {
+  margin-bottom: 24px;
+  padding: 20px 0;
 }
 
-/* Header 区域 */
-.header-area {
-  margin-bottom: 20px;
-}
 .page-title {
-  font-size: 1.8em;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-.header-row {
-  align-items: center;
+  font-size: 28px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  position: relative;
+  display: inline-block;
 }
 
-/* 货币对选择样式 */
-.currency-flag {
-  width: 1.5em;
-  height: 1.5em;
-  margin-right: 4px;
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, #1a237e, #0d47a1);
+  border-radius: 2px;
 }
-.separator {
-  color: #6b7280;
-  font-weight: bold;
+
+.spot-rate-card {
+  background: linear-gradient(135deg, #1a237e, #0d47a1);
+  color: white;
+  padding: 32px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.currency-display {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.flags-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.currency-flag {
+  width: 64px;
+  height: 48px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  object-fit: cover;
+}
+
+.exchange-arrow {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 28px;
   margin: 0 4px;
 }
 
-/* 图表区域 */
-.chart-area {
-  margin-top: 50px;
-  margin-bottom: 20px;
-}
-.kline-chart {
-  margin-top: 20px;
-  width: 100%;
-  height: 400px;
-  border: 1px solid #eee;
+.pair-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* 收益展示区域 */
-.profit-area {
-  margin-top: 20px;
-}
-.strategy-row {
-  margin-bottom: 20px;
-}
-.profit-card {
-  padding: 10px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-.profit-content {
-  font-size: 1.2em;
-  margin: 5px 0;
-}
-.profit-value {
-  color: #00a854;
-  margin-left: 5px;
+.pair-name {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
-/* 收益率曲线图 */
-.yield-chart {
-  width: 100%;
-  height: 300px;
-  border: 1px solid #eee;
+.pair-label {
+  font-size: 15px;
+  opacity: 0.9;
+  letter-spacing: 0.5px;
+}
+
+.rate-info {
+  text-align: right;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 16px 24px;
+  border-radius: 12px;
+}
+
+.current-rate {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 1px;
+}
+
+.rate-change {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.change-value, .change-percent {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.control-panel {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.control-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 250px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.time-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.time-btn {
+  padding: 6px 12px;
+  border: none;
+  background: #f5f7fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.time-btn.active {
+  background: #1a237e;
+  color: white;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+}
+
+.charts-wrapper {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-container.main {
+  min-height: 400px;
+}
+
+.chart-container.sub {
+  min-height: 300px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .charts-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .control-panel {
+    flex-direction: column;
+  }
+  
+  .control-card {
+    width: 100%;
+  }
+
+  .spot-rate-card {
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .rate-info {
+    width: 100%;
+    text-align: center;
+  }
+
+  .rate-change {
+    justify-content: center;
+  }
+  
+  .currency-flag {
+    width: 56px;
+    height: 42px;
+  }
+
+  .flags-wrapper {
+    padding: 16px;
+    gap: 16px;
+  }
+}
+
+/* 添加一些微妙的动画效果 */
+.chart-container {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chart-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* 添加深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .backtest-page {
+    background: #1a1a1a;
+  }
+  
+  .control-card,
+  .chart-container {
+    background: #242424;
+    color: #e0e0e0;
+  }
+  
+  .card-title {
+    color: #999;
+  }
+  
+  .section-header h3 {
+    color: #e0e0e0;
+  }
+  
+  .time-btn {
+    background: #333;
+    color: #e0e0e0;
+  }
+  
+  .time-btn.active {
+    background: #3949ab;
+  }
+  
+  .page-title {
+    color: #e0e0e0;
+  }
+}
+
+/* 调整动画效果 */
+.currency-flag {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.currency-flag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.exchange-arrow {
+  transition: transform 0.3s ease;
+}
+
+.flags-wrapper:hover .exchange-arrow {
+  transform: translateX(5px);
+}
+
+.change-value.up,
+.change-percent.up {
+  color: #ef4444;  /* 上涨显示红色 */
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.change-value.down,
+.change-percent.down {
+  color: #22c55e;  /* 下跌显示绿色 */
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.change-value.neutral,
+.change-percent.neutral {
+  color: #ffffff;  /* 持平显示白色 */
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 添加数据加载时的过渡效果 */
+.current-rate,
+.change-value,
+.change-percent {
+  transition: all 0.3s ease;
 }
 </style>
-
-

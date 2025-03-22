@@ -1,0 +1,46 @@
+{
+    "currency_pair": "中美",
+    "Strategy": "MACD+MODEL_result",
+    "data": [
+        {
+            "period": "1Week",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Month",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Season",
+            "Cumulative_Return": 0.0,
+            "Annualized_Return": 0.0,
+            "Sharpe_Ratio": 0.0,
+            "Maximum_Drawdown": 0.0,
+            "Calmar_Ratio": 0.0
+        },
+        {
+            "period": "1Year",
+            "Cumulative_Return": 0.005373692276898,
+            "Annualized_Return": 0.005358970786953,
+            "Sharpe_Ratio": 0.596757860500131,
+            "Maximum_Drawdown": 0.004115968966372,
+            "Calmar_Ratio": 1.30199494474749
+        },
+        {
+            "period": "3Year",
+            "Cumulative_Return": 0.203204240928986,
+            "Annualized_Return": 0.063543727441633,
+            "Sharpe_Ratio": 1.64660330413618,
+            "Maximum_Drawdown": 0.032457046411461,
+            "Calmar_Ratio": 1.95777911015325
+        }
+    ]
+}
