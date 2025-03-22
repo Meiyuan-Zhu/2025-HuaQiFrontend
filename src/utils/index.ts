@@ -32,5 +32,25 @@ export const getCurrencyFlag = (currency: string): string => {
       CHF: "ch",
     };
     return currencyToCountry[currency] || "cn";
-  };
+};
 
+//将货币转化为中文显示
+export const parseCurrency = (currency: string) => {
+    if (currency === 'USD') {
+        return "美"
+    } else if (currency === 'EUR') {
+        return "欧"
+    } else if (currency === 'AUD') {
+        return "澳"
+    } else if (currency === 'JPY') {
+        return "日"
+    } else if (currency === 'CNY') {
+        return "中"
+    }
+    return "中"
+}
+  
+//将模型转化为数字
+export const parseModel = (model: string) => {
+    return Number(model[2]);
+}

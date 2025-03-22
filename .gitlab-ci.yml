@@ -1,0 +1,44 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - deploy
+
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  tags:
+    - deploy
+  script:
+    - echo "Building node....."
+    - npm install
+    - npm run build
+    - echo "Building complete."
+    - echo "==========================="
+    - echo "Building docker image....."
+    - docker build -f Dockerfile -t erps-frontend .
+    # - docker login --username rashawnx --password $ACR_PASSWORD $ACR_SERVER
+    # - docker push $ACR_SERVER/crsmis/erps-frontend:1.0
+    - echo "Image successfully built"
+  allow_failure: false
+
+deploy-job:      # This job runs in the deployment stage.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  tags:
+    - deploy
+  dependencies:
+    - build-job
+  script:
+    - if docker ps -a | grep -q erps-frontend &> /dev/null; then
+    - echo "Container already exists"
+    - docker stop erps-frontend;
+    - docker rm erps-frontend;
+    - docker rmi $ACR_SERVER/crsmis/erps-frontend:1.0;
+    - else
+    - echo "Container does not exist"
+    - fi
+    # - docker login --username rashawnx --password $ACR_PASSWORD $ACR_SERVER
+    # - docker pull $ACR_SERVER/crsmis/erps-frontend:1.0
+    - docker run --name erps-frontend -itd -p 80:80 $ACR_SERVER/crsmis/erps-frontend:1.0
+    - echo "Application successfully deployed."

@@ -1,28 +1,27 @@
 <script setup lang="ts">
 
 import { ref } from 'vue'
-import { router } from '../router'
 import { User, SwitchButton, Search, Message } from "@element-plus/icons-vue"   //图标
 
 //退出登录
-function logout() {
-  ElMessageBox.confirm(
-      '是否要退出登录？',
-      '提示',
-      {
-        customClass: "customDialog",
-        confirmButtonText: '是',
-        cancelButtonText: '否',
-        type: "warning",
-        showClose: false,
-        roundButton: true,
-        center: true
-      }
-  ).then(() => {
-    sessionStorage.setItem('token', '')
-    router.push({path: "/login"})
-  })
-}
+// function logout() {
+//   ElMessageBox.confirm(
+//       '是否要退出登录？',
+//       '提示',
+//       {
+//         customClass: "customDialog",
+//         confirmButtonText: '是',
+//         cancelButtonText: '否',
+//         type: "warning",
+//         showClose: false,
+//         roundButton: true,
+//         center: true
+//       }
+//   ).then(() => {
+//     sessionStorage.setItem('token', '')
+//     router.push({path: "/login"})
+//   })
+// }
 
 const searchText = ref('')
 

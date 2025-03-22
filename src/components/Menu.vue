@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled } from "@element-plus/icons-vue"   //图标
+import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled } from "@element-plus/icons-vue"   //图标
 </script>
 
 
@@ -35,6 +35,11 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled } from "@el
         <el-menu-item index="/interpret">
           <el-icon><InfoFilled /></el-icon>
           <span>可解释性</span>
+        </el-menu-item>
+
+        <el-menu-item index="/dashboard">
+          <el-icon><UserFilled /></el-icon>
+          <span>个人</span>
         </el-menu-item>
       </el-menu>
 </template>

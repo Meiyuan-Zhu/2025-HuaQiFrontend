@@ -1,10 +1,14 @@
 <script setup lang="ts" >
 import * as echarts from 'echarts'
 import { ref, reactive, watch, onMounted, nextTick } from 'vue'
-import { getCurrencyFlag } from "../../utils/index";
+import { getCurrencyFlag, parseCurrency, parseModel } from "../../utils/index";
 import { Download } from "@element-plus/icons-vue"   //图标
 import * as jspdf from 'jspdf';
 import "../../assets/cnfont";
+import { ExplanationRequest, getExplanation, getPredict, PredictRequest } from '../../api/prediction';
+
+//存放预测数据列表
+const predictionList = ref([]);
 
 //当前货币对
 const currencyPair = reactive({
@@ -43,16 +47,23 @@ const modelList = ['模型1', '模型2', '模型3', '模型4',]
 const predictionPeriod = ref('1周')
 
 //可供选择的预测周期
-const predictionPeriodList = [ '1周', '1月', '1季',]
+const predictionPeriodList = [ '1周', '2周', '1月']
+
 // 根据时间范围返回对应数据点数量
 const getCountFromTimeRange = (timeRange: string) => {
   switch (timeRange) {
     case "1周": return 7;
+    case "2周": return 14;
     case "1月": return 30;
-    case "1季": return 90;
     default: return 7;
   }
 }
+
+//当前策略
+const strategy = ref('策略1')
+
+//可供选择的策略
+const strategyList = ['策略1', '策略2', '策略3']
 
 // ECharts K线图
 const chartRef = ref<HTMLElement | null>(null);
@@ -67,14 +78,45 @@ const updateChart = () => {
   if (!chartInstance) return;
 
   const count = getCountFromTimeRange(predictionPeriod.value);
-  const dates = [];
-  const dataPred = [];  
+  let dates = [];
+  let dataPred = [];  
   const now = new Date();
   for (let i = 0; i < count; i++) {
     const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
     dates.push(`${date.getMonth()+1}-${date.getDate()}`);
     dataPred.push((Math.random() * 10 + 90).toFixed(2));
   }
+
+  //获取后端预测数据
+  const predictRequest: PredictRequest = {
+    currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
+    model: parseModel(model.value),
+    timeSpan: count,
+  }
+  getPredict(predictRequest).then((res) => {
+    if(res.data.code == 200){
+      const dataList = res.data.data;
+      predictionList.value = dataList;
+      console.log(dataList);
+      //接收date作为x轴,接收pred作为y轴
+      const newDates = [];
+      const newDataPred = [];
+      for (let i = 0; i < dataList.length; i++) {
+        newDates.push(dataList[i].date);
+        newDataPred.push(dataList[i].pred);
+      }
+      dates = newDates;
+      dataPred = newDataPred;
+      
+    }else{
+      ElMessage({
+        message: res.data.message,
+        type: 'error',
+        center: true,
+      })
+    }
+  })
+
   const option = {
     tooltip: { trigger: 'axis' },
     legend: { data: [ '预测汇率' ] },
@@ -108,7 +150,6 @@ const textOutput = ref("")
 //生成AI报告的流式数据
 const printLine = async () => {
   if(textOutput.value.length >= reportText.value.length) {
-
     return
   }else{
     setTimeout(() => {
@@ -119,14 +160,30 @@ const printLine = async () => {
 }
 
 const generateReport = async () => {  
-  showAIReport.value = true
-  const echart = document.getElementById("echart")
-  if(echart){
-    echart.style.height = "420px";
-  } 
   //调用后端接口，生成AI报告
-  //reportText.value = await getReport()
-  printLine()
+  const explanationRequest: ExplanationRequest = {
+    currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
+    timeSpan: getCountFromTimeRange(predictionPeriod.value),
+    data: predictionList.value
+  }
+  getExplanation(explanationRequest).then(res => {
+    if(res.data.code === 200){
+      textOutput.value = res.data.data
+      //展示AI报告，缩小表格视图
+      showAIReport.value = true
+      const echart = document.getElementById("echart")
+      if(echart){
+        echart.style.height = "420px";
+      } 
+      printLine()
+    }else{
+      ElMessage({
+        message: res.data.message,
+        type: 'error',
+        center: true,
+      })
+    }
+  })
 }
 
 const closeReport = () => {
@@ -180,7 +237,7 @@ const downloadReport = () => {
           <!-- 货币对 预测模型 预测周期 -->
           <el-header style="height: 10%;">
             <el-row :gutter="20" justify="space-between">
-              <el-col :span="4">
+              <el-col :span="3">
                 <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
               </el-col>
 
@@ -190,14 +247,14 @@ const downloadReport = () => {
                 <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
               </el-col>
 
-              <el-col :span="2">
+              <el-col :span="3">
                 <el-select v-model="selectedCurrency" placeholder="选择货币对" @change="selectCurrency">
                   <el-option
                     v-for="(item, index) in currencyList"
                     :key="index"
                     :label="`${item.from}/${item.to}`"
                     :value="`${item.from}/${item.to}`">
-                    <template #default="{ label }">
+                    <template #default="">
                       <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
                       <span class="separator">/</span>
                       <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
@@ -210,9 +267,9 @@ const downloadReport = () => {
                 </el-select>
               </el-col>
 
-              <el-col :span="4"></el-col>
+              <el-col :span="1"></el-col>
 
-              <el-col :span="3">
+              <el-col :span="4">
                 <el-form-item label="预测模型" class="form-item">
                   <el-select v-model="model" placeholder="请选择预测模型">
                     <el-option v-for="item in modelList" :key="item" :label="item" :value="item" />
@@ -220,9 +277,7 @@ const downloadReport = () => {
                 </el-form-item>
               </el-col>
 
-              <el-col :span="1"></el-col>
-
-              <el-col :span="3">
+              <el-col :span="4">
                 <el-form-item label="预测周期" class="form-item">
                   <el-select v-model="predictionPeriod" placeholder="请选择预测周期">
                     <el-option v-for="item in predictionPeriodList" :key="item" :label="item" :value="item" />
@@ -233,6 +288,14 @@ const downloadReport = () => {
               <el-col :span="2"></el-col>
 
               <el-col :span="3">
+                <el-form-item label="策略" class="form-item">
+                  <el-select v-model="strategy" placeholder="请选择策略">
+                    <el-option v-for="item in strategyList" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="2">
                 <el-button v-if="!showAIReport" @click="generateReport" type="primary" color="#626aef">
                   生成AI报告
                 </el-button>
