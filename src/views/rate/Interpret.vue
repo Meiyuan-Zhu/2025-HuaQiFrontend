@@ -91,7 +91,9 @@ const generateData = () => {
     currencyPair: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
   }
   getInterpretData(requestParams).then((res) => {
-    if(res.data.code === 200){
+    console.log(res.data);
+    
+    if(res.data.code === 0){
       const data = res.data.data;
       console.log(data);
 
@@ -149,6 +151,8 @@ const updateChart = () => {
 
   const { nodes, links } = generateData();
 
+  console.log(nodes, links);
+  
   const option = {
     tooltip: {},
     series: [
