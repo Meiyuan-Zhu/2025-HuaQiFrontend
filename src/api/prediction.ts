@@ -13,10 +13,6 @@ export interface PredictRequest {
      */
     currency: string;
     /**
-     * 预测模型ID
-     */
-    model: number;
-    /**
      * 预测时间跨度(天)
      */
     timeSpan: number;

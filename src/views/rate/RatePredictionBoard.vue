@@ -88,9 +88,8 @@ const updateChart = () => {
   }
 
   //获取后端预测数据
-  const predictRequest: PredictRequest = {
+  const predictRequest: PredictRequest = {  
     currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
-    model: parseModel(model.value),
     timeSpan: count,
   }
   getPredict(predictRequest).then((res) => {
@@ -178,7 +177,7 @@ const generateReport = async () => {
       printLine()
     }else{
       ElMessage({
-        message: res.data.message,
+        message: res.data.msg,
         type: 'error',
         center: true,
       })
