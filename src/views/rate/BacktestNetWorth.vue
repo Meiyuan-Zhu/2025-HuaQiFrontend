@@ -1,23 +1,14 @@
 <template>
-    <div class="pred-line-section">
-      <!-- 如果 loadedData 没有任何文件，就显示“暂无数据” -->
-      <div v-if="loadedData.length === 0">
-        <p>暂无数据</p>
-      </div>
-      <!-- 否则，对每份文件(传统 / +Model)渲染一条折线图 -->
-      <div
-        v-for="(item, index) in loadedData"
-        :key="index"
-        class="line-box"
-      >
-        <h4>{{ item.title }}</h4>
-        <div
-          :ref="(el) => lineRefs[index] = el as HTMLElement | null"
-          class="line-canvas"
-        ></div>
-      </div>
+  <div class="kline-section">
+    <div v-if="loadedData.length === 0">
+      <p>暂无数据</p>
     </div>
-  </template>
+    <div v-for="(item, index) in loadedData" :key="index" class="kline-box">
+      <h4>{{ item.title }}</h4>
+      <div :ref="(el) => lineRefs[index] = el as HTMLElement | null" class="kline-canvas"></div>
+    </div>
+  </div>
+</template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from "vue";
@@ -127,37 +118,117 @@ function renderCharts() {
     lineChartInstances.push(inst);
 
     const option: echarts.EChartsOption = {
-      title: { text: d.title, left: "center" },
-      tooltip: {
-        trigger: "axis",
-        formatter: (ps) => {
-          const params = ps as any[];
-          if (!params.length) return "";
-          const param = params[0];
-          const date = param.axisValue;
-          const val = param.data?.[1];
-          return `${date}<br/>预测值: ${val}`;
+      title: { 
+        text: d.title,
+        left: "center",
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 500,
+          color: '#1e293b'
         }
       },
-      dataZoom: [
-        { type: "slider", xAxisIndex: 0, start: 0, end: 100 },
-        { type: "inside", xAxisIndex: 0 }
-      ],
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        textStyle: {
+          color: '#1e293b'
+        },
+        padding: [8, 12],
+        extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); border-radius: 8px;'
+      },
       xAxis: {
         type: "category",
-        data: d.dates
+        data: d.dates,
+        axisLine: {
+          lineStyle: {
+            color: '#e2e8f0'
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 12
+        }
       },
       yAxis: {
         type: "value",
-        scale: true, 
+        scale: true,
+        splitLine: {
+          lineStyle: {
+            color: '#f1f5f9',
+            type: 'dashed'
+          }
+        },
+        axisLabel: {
+          color: '#64748b',
+          fontSize: 12
+        }
       },
       series: [
         {
           name: d.title,
           type: "line",
-          encode: { x: 0, y: 1 },
           data: d.lineData,
-          smooth: true
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: '#10b981'  // 使用绿色表示净值
+          },
+          itemStyle: {
+            color: '#10b981',
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              {
+                offset: 0,
+                color: 'rgba(16, 185, 129, 0.2)'
+              },
+              {
+                offset: 1,
+                color: 'rgba(16, 185, 129, 0.02)'
+              }
+            ])
+          }
+        }
+      ],
+      grid: {
+        top: '8%',
+        left: '3%',
+        right: '3%',
+        bottom: '15%',
+        containLabel: true
+      },
+      dataZoom: [
+        {
+          type: "slider",
+          xAxisIndex: 0,
+          start: 0,
+          end: 100,
+          borderColor: '#e5e7eb',
+          backgroundColor: '#f8fafc',
+          fillerColor: 'rgba(16, 185, 129, 0.05)',  // 使用绿色主题
+          handleStyle: {
+            color: '#10b981',
+            borderColor: '#10b981'
+          },
+          textStyle: {
+            color: '#6b7280'
+          },
+          brushSelect: false,
+          handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+          handleSize: '80%'
+        },
+        {
+          type: "inside",  // 启用内部缩放
+          xAxisIndex: 0
         }
       ]
     };
@@ -188,17 +259,48 @@ function calcStartDate(tr: string): string {
 </script>
 
 <style scoped>
-.pred-line-section {
-  border: 1px solid #ddd;
-  padding: 10px;
+.kline-section {
+  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
-.line-box {
+
+.kline-box {
   margin-bottom: 20px;
 }
-.line-canvas {
+
+.kline-box:last-child {
+  margin-bottom: 0;
+}
+
+.kline-box h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+}
+
+.kline-box h4::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: #10b981;  /* 使用绿色主题 */
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.kline-canvas {
   width: 100%;
-  height: 400px;
-  background: #f8f8f8;
-  margin-top: 10px;
+  height: 460px;
+  background: #ffffff;
+  padding: 16px;
 }
 </style>

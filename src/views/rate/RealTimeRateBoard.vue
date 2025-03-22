@@ -154,9 +154,9 @@ const filteredRates = computed(() => {
 
 // ================== 接口调用 ================== //
 // 接口1：获取所有外汇列表
-const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_all_forex?apifoxApiId=273598691";
+const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_all_forex";
 // 接口2：获取单个外汇数据（趋势数据）
-const SINGLE_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_forex?apifoxApiId=273598878";
+const SINGLE_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_forex";
 
 async function fetchAllForexList() {
   try {

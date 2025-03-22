@@ -67,7 +67,7 @@ const currentRate = ref({
 });
 
 // 获取实时汇率数据的函数
-const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/get_all_forex?apifoxApiId=273598691";
+const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_all_forex";
 
 async function fetchCurrentRate() {
   try {
@@ -112,17 +112,30 @@ watch(selectedPair, () => {
 // 添加定时刷新功能
 let refreshTimer: number;
 
+// 添加主题状态
+const theme = ref('light'); // 默认使用浅色主题
+
 onMounted(() => {
   fetchCurrentRate();
   // 每60秒刷新一次数据
   refreshTimer = window.setInterval(fetchCurrentRate, 60000);
-});
 
-onUnmounted(() => {
-  // 组件卸载时清除定时器
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
+  // 如果需要响应系统主题变化，可以添加以下代码
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+    theme.value = e.matches ? 'dark' : 'light';
+  };
+  
+  mediaQuery.addEventListener('change', updateTheme);
+  updateTheme(mediaQuery);
+  
+  onUnmounted(() => {
+    // 组件卸载时清除定时器
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+    }
+    mediaQuery.removeEventListener('change', updateTheme);
+  });
 });
 </script>
 <template>
@@ -272,11 +285,12 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* 基础样式 - 添加渐变背景 */
 .backtest-page {
   width: 100%;
   min-height: 100vh;
-  background: #f0f2f5;
-  padding: 20px;
+  background: linear-gradient(to bottom, #ffffff, #f8fafc) !important;
+  padding: 24px 32px;
 }
 
 .page-header {
@@ -287,7 +301,7 @@ onUnmounted(() => {
 .page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #1e293b !important;
   margin: 0;
   position: relative;
   display: inline-block;
@@ -304,16 +318,34 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 
+/* 美化顶部卡片 */
 .spot-rate-card {
-  background: linear-gradient(135deg, #1a237e, #0d47a1);
-  color: white;
+  background: linear-gradient(135deg, #1e40af, #1e3a8a) !important;
+  color: #ffffff !important;
   padding: 32px;
   border-radius: 16px;
   margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.15);
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 添加背景纹理 */
+.spot-rate-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 150%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% -50%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .currency-display {
@@ -328,6 +360,8 @@ onUnmounted(() => {
   gap: 20px;
   padding: 20px;
   background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
 }
 
@@ -356,19 +390,24 @@ onUnmounted(() => {
   font-size: 20px;
   font-weight: 500;
   letter-spacing: 0.5px;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .pair-label {
   font-size: 15px;
-  opacity: 0.9;
+  opacity: 0.8;
   letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .rate-info {
   text-align: right;
   background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
   padding: 16px 24px;
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .current-rate {
@@ -376,6 +415,8 @@ onUnmounted(() => {
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: 1px;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .rate-change {
@@ -391,6 +432,8 @@ onUnmounted(() => {
   padding: 4px 12px;
   border-radius: 6px;
   font-weight: 500;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .control-panel {
@@ -399,18 +442,26 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+/* 美化控制卡片 */
 .control-card {
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  border-radius: 12px;
   flex: 1;
   min-width: 250px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 16px rgba(148, 163, 184, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.control-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(148, 163, 184, 0.15);
 }
 
 .card-title {
   font-size: 14px;
-  color: #666;
+  color: #64748b !important;
   margin-bottom: 12px;
 }
 
@@ -420,18 +471,27 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+/* 美化时间按钮 */
 .time-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border: none;
-  background: #f5f7fa;
-  border-radius: 4px;
+  background: #f1f5f9;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.time-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
 .time-btn.active {
-  background: #1a237e;
+  background: linear-gradient(135deg, #1e40af, #1e3a8a);
   color: white;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
 }
 
 .main-content {
@@ -440,31 +500,61 @@ onUnmounted(() => {
   gap: 24px;
 }
 
+.analysis-section {
+  margin-top: 32px;
+}
+
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .section-header h3 {
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
   margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.section-tools {
+  display: flex;
+  gap: 8px;
 }
 
 .charts-wrapper {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
 }
 
+/* 美化图表容器 */
 .chart-container {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background: #ffffff !important;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(148, 163, 184, 0.08);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  height: fit-content;
+}
+
+.chart-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1e40af, #3b82f6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.chart-container:hover::before {
+  opacity: 1;
 }
 
 .chart-container.main {
@@ -472,48 +562,86 @@ onUnmounted(() => {
 }
 
 .chart-container.sub {
-  min-height: 300px;
+  min-height: auto;
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .charts-wrapper {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .chart-container {
+    width: 100%;
+    margin: 0 auto;
   }
 }
 
 @media (max-width: 768px) {
-  .control-panel {
-    flex-direction: column;
-  }
-  
-  .control-card {
-    width: 100%;
+  .backtest-page {
+    padding: 16px;
   }
 
   .spot-rate-card {
     flex-direction: column;
+    align-items: center;  /* 居中对齐 */
     gap: 20px;
     padding: 24px;
   }
 
-  .rate-info {
+  .currency-display {
     width: 100%;
-    text-align: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
 
-  .rate-change {
-    justify-content: center;
+  .flags-wrapper {
+    width: auto;  /* 改为自适应宽度 */
+    padding: 16px;
+    gap: 16px;
   }
-  
+
   .currency-flag {
     width: 56px;
     height: 42px;
   }
 
-  .flags-wrapper {
-    padding: 16px;
-    gap: 16px;
+  .pair-info {
+    text-align: center;
+  }
+
+  .rate-info {
+    width: auto;  /* 改为自适应宽度 */
+    min-width: 200px;  /* 设置最小宽度 */
+    max-width: 80%;   /* 设置最大宽度为容器的80% */
+    text-align: center;
+    margin: 0 auto;   /* 居中显示 */
+  }
+
+  .rate-change {
+    justify-content: center;
+    flex-wrap: wrap;  /* 允许在需要时换行 */
+    gap: 8px;
+  }
+
+  .current-rate {
+    font-size: 36px;  /* 稍微减小字体大小 */
+  }
+
+  .change-value, .change-percent {
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+}
+
+/* 添加平板尺寸的响应式设计 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .rate-info {
+    width: auto;
+    min-width: 250px;
+    max-width: 60%;
   }
 }
 
@@ -527,37 +655,28 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* 添加深色模式支持 */
+/* 修改深色模式的触发条件 */
 @media (prefers-color-scheme: dark) {
-  .backtest-page {
-    background: #1a1a1a;
+  .backtest-page[data-theme="dark"] {  /* 添加主题判断 */
+    background: #1a1a1a !important;
   }
   
-  .control-card,
-  .chart-container {
-    background: #242424;
-    color: #e0e0e0;
+  .backtest-page[data-theme="dark"] .control-card,
+  .backtest-page[data-theme="dark"] .chart-container {
+    background: #242424 !important;
+    color: #e0e0e0 !important;
   }
   
-  .card-title {
-    color: #999;
+  .backtest-page[data-theme="dark"] .card-title {
+    color: #999 !important;
   }
   
-  .section-header h3 {
-    color: #e0e0e0;
+  .backtest-page[data-theme="dark"] .section-header h3 {
+    color: #e0e0e0 !important;
   }
   
-  .time-btn {
-    background: #333;
-    color: #e0e0e0;
-  }
-  
-  .time-btn.active {
-    background: #3949ab;
-  }
-  
-  .page-title {
-    color: #e0e0e0;
+  .backtest-page[data-theme="dark"] .page-title {
+    color: #e0e0e0 !important;
   }
 }
 

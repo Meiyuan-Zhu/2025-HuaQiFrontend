@@ -2,7 +2,7 @@
     <div class="kline-section">
       <!-- 
         当 loadedData 中有N个文件，就渲染N个图表容器
-        如果没数据则显示“暂无数据”
+        如果没数据则显示"暂无数据"
       -->
       <div v-if="loadedData.length === 0">
         <p>暂无数据</p>
@@ -82,56 +82,79 @@
       try {
         const url = `http://localhost:3000/data/backtest-result/${props.currencyPair}/${f.filename}`;
         const res = await axios.get(url);
-        results.push({ title: f.title, raw: res.data });
-        console.log(`文件 ${f.filename} 加载成功`);
+        if (res.data && res.data.data) {  // 添加数据有效性检查
+          results.push({ title: f.title, raw: res.data });
+          console.log(`文件 ${f.filename} 加载成功`);
+        }
       } catch (err) {
         console.warn(`文件 ${f.filename} 不存在或加载失败`, err);
       }
     }
   
-    // 4) 按 timeRange 计算起始日期(如 "1M" => 最近30天)
+    // 4) 如果没有任何有效数据，直接返回
+    if (results.length === 0) {
+      console.log("没有找到任何有效数据");
+      return;
+    }
+  
+    // 5) 按 timeRange 计算起始日期
     const startDate = calcStartDate(props.timeRange);
     console.log("startDate", startDate);
   
-    // 5) 解析各文件，过滤数据
+    // 6) 解析各文件，过滤数据
     const newData: any[] = [];
     for (const r of results) {
       if (!r.raw || !r.raw.data) continue;
-      const fullData = r.raw.data; // 2021~至今
-      // 筛选 >= startDate
+      const fullData = r.raw.data;
       const filtered = fullData.filter((item: any) => item.date >= startDate);
       
+      if (filtered.length === 0) continue;  // 跳过空数据
+
       let mode = 'none';
       if (props.timeRange === '3Y') {
         mode = 'week';
       } else if (props.timeRange === '1Y') {
         mode = 'week';
       }
-      const aggregated = resampleData(filtered,mode);
+      const aggregated = resampleData(filtered, mode);
 
       // 组装 candlestickData
-      const candlestickData: (string|number)[][] = [];
+      const candlestickData: number[][] = [];
       const dateArr: string[] = [];
       aggregated.forEach((item: any) => {
+        if (!item.true) return;  // 添加数据有效性检查
+        
         const date = item.date;
-        // open,close,high,low
-        candlestickData.push([date, item.true.open, item.true.close, item.true.low, item.true.high]);
-        dateArr.push(date);
+        const open = parseFloat(item.true.open);
+        const close = parseFloat(item.true.close);
+        const low = parseFloat(item.true.low);
+        const high = parseFloat(item.true.high);
+        
+        if (!isNaN(open) && !isNaN(close) && !isNaN(low) && !isNaN(high)) {
+          candlestickData.push([open, close, low, high]);
+          dateArr.push(date);
+        }
       });
-      newData.push({
-        title: r.title,
-        candlestickData,
-        dates: dateArr
+
+      if (candlestickData.length > 0) {  // 只添加有效数据
+        newData.push({
+          title: r.title,
+          candlestickData,
+          dates: dateArr
+        });
+      }
+    }
+
+    // 7) 更新数据并渲染
+    if (newData.length > 0) {
+      loadedData.value = newData;
+      console.log("loadedData", loadedData.value);
+      
+      // 8) DOM更新后渲染图表
+      nextTick(() => {
+        renderCharts();
       });
     }
-    loadedData.value = newData;
-    console.log("loadedData", loadedData.value);
-    console.log("newData", newData);
-  
-    // 6) DOM更新后 => renderCharts
-    nextTick(() => {
-      renderCharts();
-    });
   }
   
   /** renderCharts: 逐个init & setOption */
@@ -143,26 +166,154 @@
       chartInstances.push(inst);
   
       const option: echarts.EChartsOption = {
-        title: { text: d.title, left: "center" },
-        tooltip: { trigger: "axis" },
-        xAxis: { type: "category", data: d.dates },
+        title: { 
+          text: d.title,
+          left: "left",  // 改为左对齐
+          textStyle: {
+            fontSize: 16,
+            fontWeight: 600,
+            color: '#1e293b'
+          },
+          padding: [0, 0, 20, 0]  // 添加底部内边距
+        },
+        tooltip: { 
+          trigger: "axis",
+          axisPointer: {
+            type: 'cross',
+            crossStyle: {
+              color: '#9ca3af'
+            },
+            lineStyle: {
+              type: 'dashed'
+            }
+          },
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          textStyle: {
+            color: '#374151',
+            fontSize: 12
+          },
+          padding: [8, 12],
+          formatter: function (params: any) {
+            const data = params[0].data;
+            return [
+              `<div style="font-weight:500;margin-bottom:4px;color:#374151">${params[0].axisValue}</div>`,
+              `<div style="display:flex;justify-content:space-between;margin:4px 0">`,
+              `<span style="color:#6b7280">开盘</span>`,
+              `<span style="font-weight:500;color:#374151">${data[1]}</span>`,
+              `</div>`,
+              `<div style="display:flex;justify-content:space-between;margin:4px 0">`,
+              `<span style="color:#6b7280">收盘</span>`,
+              `<span style="font-weight:500;color:#374151">${data[2]}</span>`,
+              `</div>`,
+              `<div style="display:flex;justify-content:space-between;margin:4px 0">`,
+              `<span style="color:#6b7280">最低</span>`,
+              `<span style="font-weight:500;color:#374151">${data[3]}</span>`,
+              `</div>`,
+              `<div style="display:flex;justify-content:space-between;margin:4px 0">`,
+              `<span style="color:#6b7280">最高</span>`,
+              `<span style="font-weight:500;color:#374151">${data[4]}</span>`,
+              `</div>`
+            ].join('');
+          },
+          extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border-radius: 4px;'
+        },
+        xAxis: { 
+          type: "category", 
+          data: d.dates,
+          axisLine: {
+            lineStyle: {
+              color: '#e5e7eb'
+            }
+          },
+          axisTick: {
+            show: false
+          },
+          axisLabel: {
+            color: '#6b7280',
+            fontSize: 11,
+            rotate: 30
+          },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              color: '#f1f5f9',
+              type: 'dashed'
+            }
+          }
+        },
         yAxis: { 
-            type: "value",
-            scale: true, 
+          type: "value",
+          scale: true,
+          splitLine: {
+            lineStyle: {
+              color: '#f1f5f9',
+              type: 'dashed'
+            }
+          },
+          axisLabel: {
+            color: '#6b7280',
+            fontSize: 11,
+            formatter: (value: number) => value.toFixed(4)
+          },
+          axisLine: {
+            show: true,
+            lineStyle: {
+              color: '#e5e7eb'
+            }
+          }
         },
         dataZoom: [
-          { type: "slider", xAxisIndex: 0, start: 0, end: 100 },
-          { type: "inside", xAxisIndex: 0 }
+          { 
+            type: "slider",
+            xAxisIndex: 0,
+            start: 0,
+            end: 100,
+            borderColor: '#e5e7eb',
+            backgroundColor: '#f8fafc',
+            fillerColor: 'rgba(37, 99, 235, 0.05)',
+            handleStyle: {
+              color: '#2563eb',
+              borderColor: '#2563eb'
+            },
+            textStyle: {
+              color: '#6b7280'
+            },
+            brushSelect: false,
+            handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+            handleSize: '80%'
+          },
+          { 
+            type: "inside",
+            xAxisIndex: 0
+          }
         ],
         series: [
           {
             name: d.title,
             type: "candlestick",
-            encode: { x: 0, y: [1, 2, 3, 4] },
-            data: d.candlestickData
+            data: d.candlestickData,
+            itemStyle: {
+              color: '#ef4444',      // 上涨红色
+              color0: '#22c55e',     // 下跌绿色
+              borderColor: '#ef4444',
+              borderColor0: '#22c55e'
+            }
           }
-        ]
+        ],
+        grid: {
+          top: '8%',
+          left: '3%',
+          right: '3%',
+          bottom: '15%',
+          containLabel: true
+        }
       };
+
+      // 输出数据进行调试
+      console.log("K线数据:", d.candlestickData);
+      
       inst.setOption(option);
     });
   }
@@ -190,16 +341,41 @@
   <style scoped>
   .kline-section {
     margin-top: 20px;
-    border: 1px solid #ddd;
-    padding: 10px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
   .kline-box {
     margin-bottom: 20px;
   }
+  .kline-box:last-child {
+    margin-bottom: 0;  /* 最后一个图表不需要底部边距 */
+  }
+  .kline-box h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+  }
+  .kline-box h4::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: #2563eb;
+    margin-right: 8px;
+    border-radius: 2px;
+  }
   .kline-canvas {
     width: 100%;
-    height: 400px;
-    background: #f8f8f8;
-    margin-top: 10px;
+    height: 460px;  /* 增加图表高度 */
+    background: #ffffff;
+    padding: 16px;
   }
   </style>

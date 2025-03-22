@@ -1,22 +1,49 @@
 <template>
-    <div class="yield-section">
-      <h3>回测收益指标</h3>
-      <div class="yield-cards">
-        <!-- 遍历筛选后的两个收益数据（可能只有一项） -->
-        <el-card v-for="(item, index) in selectedYields" :key="index" class="yield-card">
-          <h4>{{ item.title }}</h4>
-          <ul>
-            <li>累计收益率: {{ formatPercent(item.Cumulative_Return) }}</li>
-            <li>年化收益率: {{ formatPercent(item.Annualized_Return) }}</li>
-            <li>夏普比: {{ item.Sharpe_Ratio }}</li>
-            <li>最大回撤: {{ formatPercent(item.Maximum_Drawdown) }}</li>
-            <li>卡玛比率: {{ item.Calmar_Ratio }}</li>
-          </ul>
-        </el-card>
-      </div>
-      <p v-if="selectedYields.length === 0">暂无收益数据</p>
+  <div class="kline-section">
+    <div v-if="selectedYields.length === 0">
+      <p>暂无数据</p>
     </div>
-  </template>
+    <div v-for="(item, index) in selectedYields" :key="index" class="kline-box">
+      <h4>{{ item.title }}
+        <div class="strategy-tag">{{ props.strategy }}</div>
+      </h4>
+      <div class="yield-content">
+        <ul class="metrics-list">
+          <li>
+            <span class="metric-label">累计收益率</span>
+            <span class="metric-value" :class="getValueClass(item.Cumulative_Return)">
+              {{ formatPercent(item.Cumulative_Return) }}
+            </span>
+          </li>
+          <li>
+            <span class="metric-label">年化收益率</span>
+            <span class="metric-value" :class="getValueClass(item.Annualized_Return)">
+              {{ formatPercent(item.Annualized_Return) }}
+            </span>
+          </li>
+          <li>
+            <span class="metric-label">夏普比</span>
+            <span class="metric-value" :class="getValueClass(item.Sharpe_Ratio)">
+              {{ item.Sharpe_Ratio.toFixed(2) }}
+            </span>
+          </li>
+          <li>
+            <span class="metric-label">最大回撤</span>
+            <span class="metric-value drawdown">
+              {{ formatPercent(item.Maximum_Drawdown) }}
+            </span>
+          </li>
+          <li>
+            <span class="metric-label">卡玛比率</span>
+            <span class="metric-value" :class="getValueClass(item.Calmar_Ratio)">
+              {{ item.Calmar_Ratio.toFixed(2) }}
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
@@ -114,34 +141,143 @@ watch(() => props, () => {
 onMounted(() => {
   loadYieldData();
 });
+
+// 添加一个新的函数来处理数值的颜色类
+function getValueClass(value: number): string {
+  if (value > 0) return 'positive';
+  if (value < 0) return 'negative';
+  return 'neutral';
+}
 </script>
 
 <style scoped>
-.yield-section {
-  padding: 20px;
+.kline-section {
+  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
-.yield-cards {
+
+.kline-box {
+  margin-bottom: 20px;
+}
+
+.kline-box:last-child {
+  margin-bottom: 0;
+}
+
+.kline-box h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
 }
-.yield-card {
-  width: 250px;
-  padding: 10px;
-  text-align: center;
+
+.kline-box h4::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: #3b82f6;
+  margin-right: 8px;
+  border-radius: 2px;
 }
-.yield-card h4 {
-  margin-bottom: 10px;
-  font-size: 1.2rem;
+
+.strategy-tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  border-radius: 4px;
+  font-weight: 500;
 }
-.yield-card ul {
+
+.yield-content {
+  padding: 16px 20px;
+}
+
+.metrics-list {
   list-style: none;
-  padding: 0;
+  padding: 16px 20px;
   margin: 0;
 }
-.yield-card li {
-  margin-bottom: 5px;
-  font-size: 0.9rem;
+
+.metrics-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.metrics-list li:last-child {
+  border-bottom: none;
+}
+
+.metric-label {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.metric-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.positive {
+  color: #22c55e;
+}
+
+.negative {
+  color: #ef4444;
+}
+
+.neutral {
+  color: #64748b;
+}
+
+.drawdown {
+  color: #f97316;
+}
+
+.model-card {
+  border-left: 4px solid #6366f1;
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #64748b;
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+  .yield-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .yield-section {
+    padding: 12px;
+  }
+  
+  .card-header {
+    padding: 12px 16px;
+  }
+  
+  .metrics-list {
+    padding: 12px 16px;
+  }
 }
 </style>
