@@ -17,7 +17,7 @@ build-job:       # This job runs in the build stage, which runs first.
     - echo "Building complete."
     - echo "==========================="
     - echo "Building docker image....."
-    - docker build -f Dockerfile -t $ACR_SERVER/crsmis/erps-frontend .
+    - docker build -f Dockerfile -t $ACR_SERVER/crsmis/erps-frontend:1.0 .
     # - docker login --username rashawnx --password $ACR_PASSWORD $ACR_SERVER
     # - docker push $ACR_SERVER/crsmis/erps-frontend:1.0
     - echo "Image successfully built"
@@ -30,7 +30,7 @@ deploy-job:      # This job runs in the deployment stage.
   dependencies:
     - build-job
   script:
-    - if docker ps -a | grep -q $ACR_SERVER/crsmis/erps-frontend &> /dev/null; then
+    - if docker ps -a | grep -q erps-frontend &> /dev/null; then
     - echo "Container already exists"
     - docker stop erps-frontend;
     - docker rm erps-frontend;
