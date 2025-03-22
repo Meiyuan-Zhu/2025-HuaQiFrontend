@@ -153,20 +153,26 @@ const filteredRates = computed(() => {
 });
 
 // ================== 接口调用 ================== //
-// 接口1：获取所有外汇列表
-const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_all_forex";
-// 接口2：获取单个外汇数据（趋势数据）
-const SINGLE_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_forex";
+const BASE_URL = 'http://118.178.184.189';
+const ALL_FOREX_API = `${BASE_URL}/api/v1/rate/get_all_forex`;
+const SINGLE_FOREX_API = `${BASE_URL}/api/v1/rate/get_forex`;
+
+// 添加请求配置
+const requestConfig = {
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,  // 如果需要token
+    'Content-Type': 'application/json'
+  }
+};
 
 async function fetchAllForexList() {
   try {
-    const res = await axios.get(ALL_FOREX_API);
+    const res = await axios.get(ALL_FOREX_API, requestConfig);
     if (res.data && res.data.data) {
       rateList.value = res.data.data.map((item: any, index: number) => ({
         id: index + 1,
         currency: item.currency_code,
         currency_name: item.currency_name,
-        // 假设：fromRate = central_parity - change_rate, toRate = central_parity
         fromRate: item.central_parity - item.change_rate,
         toRate: item.central_parity,
         updateTime: item.date,
@@ -195,15 +201,16 @@ const showTrend = async (row: RateItem) => {
   updateTrendData(); // 更新图表
 };
 
-async function fetchSingleForexTrend(currencyCode:string) {
+async function fetchSingleForexTrend(currencyCode: string) {
   try {
     const res = await axios.get(SINGLE_FOREX_API, {
-      params: { symbol: currencyCode},
+      ...requestConfig,
+      params: { symbol: currencyCode }
     });
     if (res.data && res.data.data && res.data.data.data) {
       trendData.value = res.data.data.data.map((item: any) => ({
         date: item.date,
-        rate: item.central_parity, // 使用 central_parity 作为趋势值
+        rate: item.central_parity,
       }));
       console.log("获取趋势数据成功", trendData.value);
     } else {
@@ -434,21 +441,21 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 外层容器 - 使用更现代的渐变背景 */
+/* 外层容器 - 改为浅色渐变背景 */
 .rate-container {
   padding: 20px;
   margin: 0;
   position: fixed;
-  top: 6vh;          /* 改为 6vh，与顶部导航栏高度对应 */
+  top: 6vh;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #001a4d 0%, #002687 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* 添加科技感网格背景 */
+/* 修改网格背景为浅色 */
 .rate-container::before {
   content: '';
   position: absolute;
@@ -457,50 +464,220 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   background-image: 
-    linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
-  background-size: 25px 25px;  /* 稍微调小网格大小 */
+    linear-gradient(rgba(51, 65, 85, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 65, 85, 0.03) 1px, transparent 1px);
+  background-size: 25px 25px;
   pointer-events: none;
 }
 
-/* 优化标题样式 */
+/* 修改标题样式为深色 */
 .page-title {
-  color: #ffffff;  /* 纯白色 */
+  color: #1e293b;
   font-size: 1.8rem;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
   margin: 24px 0 40px;
   position: relative;
   display: inline-block;
   padding: 0 40px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);  /* 添加阴影提升立体感 */
+  text-shadow: none;
   letter-spacing: 2px;
 }
 
-/* 修改标题装饰 */
+/* 修改标题装饰线颜色 */
 .page-title::before,
 .page-title::after {
+  background: rgba(51, 65, 85, 0.2);
+}
+
+/* 修改卡片基础样式 */
+.exact-card {
+  width: 14rem;
+  color: #1e293b;
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 0 20px rgba(255, 255, 255, 0.5);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* 添加卡片悬浮效果 */
+.exact-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 12px 20px -5px rgba(0, 0, 0, 0.15),
+    0 4px 6px -2px rgba(0, 0, 0, 0.08),
+    inset 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+/* 修改上涨卡片样式 */
+.trend-up {
+  background: linear-gradient(165deg, 
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(239, 68, 68, 0.08) 100%
+  );
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  position: relative;
+}
+
+.trend-up::before {
   content: '';
   position: absolute;
-  top: 50%;
-  width: 25px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.8);  /* 纯白色装饰线 */
-  transform: translateY(-50%);
-}
-
-.page-title::before {
+  top: 0;
   left: 0;
-}
-
-.page-title::after {
   right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(239, 68, 68, 0.7),
+    rgba(239, 68, 68, 0.3)
+  );
+  border-radius: 3px 3px 0 0;
 }
 
-/* 添加标题悬浮效果 */
-.page-title:hover {
-  transform: scale(1.02);
-  transition: all 0.3s ease;
+/* 修改下跌卡片样式 */
+.trend-down {
+  background: linear-gradient(165deg, 
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(34, 197, 94, 0.08) 100%
+  );
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  position: relative;
+}
+
+.trend-down::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(34, 197, 94, 0.7),
+    rgba(34, 197, 94, 0.3)
+  );
+  border-radius: 3px 3px 0 0;
+}
+
+/* 修改差值行样式 */
+.diff-row {
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 修改大数字样式 */
+.big-diff {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: 'Monaco', monospace;
+  background: linear-gradient(135deg, #1e293b 30%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -1px;
+}
+
+/* 修改箭头样式 */
+.arrow-up {
+  color: #ef4444;
+  font-size: 1.6rem;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.arrow-down {
+  color: #22c55e;
+  font-size: 1.6rem;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+  transition: transform 0.3s ease;
+}
+
+/* 添加箭头悬浮效果 */
+.exact-card:hover .arrow-up {
+  transform: translateY(-3px);
+}
+
+.exact-card:hover .arrow-down {
+  transform: translateY(3px);
+}
+
+/* 修改价格行样式 */
+.price-line {
+  margin: 8px 0;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-line:last-child {
+  border-bottom: none;
+}
+
+/* 修改价格标签样式 */
+.price-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* 修改价格值样式 */
+.price-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  font-family: 'Monaco', monospace;
+  background: linear-gradient(90deg, #1e293b, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 修改货币代码样式 */
+.big-currency {
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b 30%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+  position: relative;
+  display: inline-block;
+}
+
+/* 添加货币代码装饰效果 */
+.big-currency::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    rgba(59, 130, 246, 0.5),
+    rgba(59, 130, 246, 0.1)
+  );
+  border-radius: 1px;
+}
+
+/* 修改中文货币名称样式 */
+.zh-currency {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 4px 0;
 }
 
 /* 卡片列表布局优化 */
@@ -513,113 +690,6 @@ onMounted(() => {
   justify-content: center;
   position: relative;
   z-index: 1;
-}
-
-/* 卡片样式优化 - 增加科技感 */
-.exact-card {
-  width: 14rem;
-  color: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);  /* 降低透明度 */
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);  /* 调整阴影 */
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-
-}
-
-/* 上涨和下跌卡片样式优化 - 更暗沉的渐变 */
-.trend-up {
-  background: linear-gradient(165deg, 
-    rgba(56, 189, 248, 0.75) 0%,
-    rgba(59, 130, 246, 0.7) 70%,
-    rgba(239, 68, 68, 0.65) 100%
-  );
-}
-
-.trend-down {
-  background: linear-gradient(165deg, 
-    rgba(56, 189, 248, 0.75) 0%,
-    rgba(59, 130, 246, 0.7) 70%,
-    rgba(34, 197, 94, 0.65) 100%
-  );
-}
-
-/* 更新箭头颜色 */
-.arrow-up {
-  color: rgb(255, 86, 86);    /* 更明亮的红色 */
-  font-size: 1.6rem;
-  text-shadow: 0 0 15px rgba(255, 86, 86, 0.6);
-}
-
-.arrow-down {
-  color: rgb(52, 211, 153);    /* 更明亮的绿色 */
-  font-size: 1.6rem;
-  text-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
-}
-
-.date {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);  /* 降低亮度 */
-  font-weight: 400;
-}
-
-/* 调整差值行背景 */
-.diff-row {
-  background: rgba(255, 255, 255, 0.06);  /* 降低透明度 */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  margin-bottom: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-}
-
-/* 调整价格行样式 */
-.price-line {
-  margin: 8px 0;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);  /* 降低边框亮度 */
-}
-
-.price-label {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);  /* 降低亮度 */
-  margin-bottom: 4px;
-}
-
-.price-value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);  /* 降低亮度 */
-}
-
-/* 货币代码样式优化 - 添加科技感字体效果 */
-.big-currency {
-  font-size: 2.2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #ffffff 30%, #a5f3fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
-}
-
-/* 差值和箭头样式优化 */
-.diff-row {
-  margin-bottom: 12px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.big-diff {
-  font-size: 1.8rem;
-  font-weight: 700;
 }
 
 /* 响应式优化 */
