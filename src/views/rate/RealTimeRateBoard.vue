@@ -99,9 +99,9 @@ interface RateItem {
   fromRate: number; 
   toRate: number;   
   updateTime: string; //date
-  buy_price: number;
-  sell_price: number;
-  change_rate: number;
+  buy_price?: number;
+  sell_price?: number;
+  change_rate?: number;
 }
 
 interface TrendDataItem {
@@ -125,20 +125,27 @@ const rateList = ref<RateItem[]>([]);
 // ================== 过滤 ================== //
 const filteredRates = computed(() => {
   return rateList.value.map((r, index) => {
-    const diff = r.change_rate;
-    const isUp = diff >= 0;
+    const buy_price = r.buy_price ?? 0;
+    const sell_price = r.sell_price ?? 0;
+    const change_rate = r.change_rate ?? 0;
+    const toRate = r.toRate ?? 0;
     return {
+      ...r, // 包括原有的 id, currency, currency_name, updateTime 等
+        // 如果原始值可能为 undefined，则补充默认值
+      buy_price,
+      sell_price,
+      change_rate,
       id: r.id || index + 1,
       currency: r.currency,
       currency_name: r.currency_name,
       updateTime: r.updateTime,
-      fromRate: r.toRate - r.change_rate,
-      toRate: r.toRate,
-      diffVal: diff.toFixed(2),
-      isUp,
-      buy: r.buy_price.toFixed(2),
-      sell: r.sell_price.toFixed(2),
-      mid: r.toRate.toFixed(2),
+      fromRate: r.toRate - change_rate,
+      toRate,
+      diffVal: change_rate.toFixed(2),
+      isUp: change_rate >= 0,
+      buy: buy_price.toFixed(2),
+      sell: sell_price.toFixed(2),
+      mid: toRate.toFixed(2),
     };
   }).filter((item) =>
     item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())

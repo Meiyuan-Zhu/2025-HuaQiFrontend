@@ -179,7 +179,7 @@ const downloadReport = () => {
         <el-container style="display: flex;">
           <!-- 货币对 预测模型 预测周期 -->
           <el-header style="height: 10%;">
-            <el-row :gutter="20" justify="space-beetween">
+            <el-row :gutter="20" justify="space-between">
               <el-col :span="4">
                 <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
               </el-col>
