@@ -67,7 +67,7 @@ const strategyList = ['策略1', '策略2', '策略3']
 
 // ECharts K线图
 const chartRef = ref<HTMLElement | null>(null);
-let chartInstance: echarts.ECharts | null = null;
+let chartInstance: echarts.ECharts;
 const initChart = () => {
   if (chartRef.value) {
     chartInstance = echarts.init(chartRef.value);
@@ -78,35 +78,49 @@ const updateChart = () => {
   if (!chartInstance) return;
 
   const count = getCountFromTimeRange(predictionPeriod.value);
-  let dates = [];
-  let dataPred = [];  
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-    dates.push(`${date.getMonth()+1}-${date.getDate()}`);
-    dataPred.push((Math.random() * 10 + 90).toFixed(2));
-  }
+  const dates: any[] = [];
+  const dataPred: any[] = [];  
+  // const now = new Date();
+  // for (let i = 0; i < count; i++) {
+  //   const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
+  //   dates.push(`${date.getMonth()+1}-${date.getDate()}`);
+  //   dataPred.push((Math.random() * 10 + 90).toFixed(2));
+  // }
 
   //获取后端预测数据
   const predictRequest: PredictRequest = {  
     currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
     timeSpan: count,
   }
+  console.log(predictRequest);  
   getPredict(predictRequest).then((res) => {
-    if(res.data.code == 200){
+    console.log(res.data);
+    if(res.data.code == 0){
       const dataList = res.data.data;
       predictionList.value = dataList;
-      console.log(dataList);
       //接收date作为x轴,接收pred作为y轴
-      const newDates = [];
-      const newDataPred = [];
       for (let i = 0; i < dataList.length; i++) {
-        newDates.push(dataList[i].date);
-        newDataPred.push(dataList[i].pred);
+        dates.push(dataList[i].date);
+        dataPred.push(dataList[i].pred);
       }
-      dates = newDates;
-      dataPred = newDataPred;
+      //console.log(dates, dataPred);
+      const option = {
+        tooltip: { trigger: 'axis' },
+        legend: { data: [ '预测汇率' ] },
+        xAxis: { type: 'category', data: dates },
+        yAxis: { type: 'value' },
+        series: [
+          {
+            name: '预测汇率',
+            type: 'line',
+            data: dataPred,
+            smooth: true
+          }
+        ]
+      };
+      console.log(option);
       
+      chartInstance.setOption(option);
     }else{
       ElMessage({
         message: res.data.message,
@@ -115,22 +129,6 @@ const updateChart = () => {
       })
     }
   })
-
-  const option = {
-    tooltip: { trigger: 'axis' },
-    legend: { data: [ '预测汇率' ] },
-    xAxis: { type: 'category', data: dates },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: '预测汇率',
-        type: 'line',
-        data: dataPred,
-        smooth: true
-      }
-    ]
-  };
-  chartInstance.setOption(option);
 };
 watch([currencyPair, predictionPeriod], () => {
   nextTick(() => { updateChart(); });
@@ -165,8 +163,12 @@ const generateReport = async () => {
     timeSpan: getCountFromTimeRange(predictionPeriod.value),
     data: predictionList.value
   }
+  console.log(explanationRequest);
+  
   getExplanation(explanationRequest).then(res => {
-    if(res.data.code === 200){
+    console.log(res.data);
+    
+    if(res.data.code === 0){
       textOutput.value = res.data.data
       //展示AI报告，缩小表格视图
       showAIReport.value = true
