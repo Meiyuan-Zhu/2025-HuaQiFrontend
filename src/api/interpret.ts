@@ -3,12 +3,13 @@ import {INTERPRET_MODULE} from './_prefix'
 
 export type Node2 = {
     id: string,
-    currency: string,
+    name: string,
+    desc: string,
 }
 
 export type Link = {
-    sourceId: string,
-    targetId: string,
+    source: string,
+    target: string,
     weight: number,
 }
 
@@ -20,10 +21,6 @@ export type Link = {
 */
 
 export interface GraphRequest {
-    /**
-     * 货币对
-     */
-    currencyPair: string;
     /**
      * 模型ID
      */

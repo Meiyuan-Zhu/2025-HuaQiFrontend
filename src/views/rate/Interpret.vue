@@ -4,7 +4,7 @@ import * as echarts from 'echarts/core';
 import { GraphChart, HeatmapChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import { TitleComponent, TooltipComponent, VisualMapComponent, LegendComponent } from 'echarts/components';
-import { getCurrencyFlag, parseCurrency, parseModel } from "../../utils/index";
+import { getCurrencyFlag, parseModel } from "../../utils/index";
 import { getInterpretData, GraphRequest, Link, Node2 } from "../../api/interpret";
 
 // 注册必要组件
@@ -58,86 +58,9 @@ watch([model, currencyPair],() => {
   nextTick(() => { updateChart(); });
 })
 
-// 获取后端数据
-const generateData = () => {
-  // 创建节点
-  let nodes = [];
-  for (let i = 0; i < 20; i++) {
-    nodes.push({
-      id: i.toString(),
-      name: `Node ${i}`,
-      value: Math.random() * 100,
-      symbolSize: Math.random() * 15 + 10,
-    //   x: Math.random() * 800,
-    //   y: Math.random() * 800,
-    });
-  }
-
-  // 创建关系
-  let links = [];
-  for (let i = 0; i < 30; i++) {
-    links.push({
-      source: Math.floor(Math.random() * 20).toString(),
-      target: Math.floor(Math.random() * 20).toString(),
-      lineStyle: {
-        width: 2,
-      }
-    });
-  }
-
-  //获取后端数据nodes和links
-  const requestParams: GraphRequest = {
-    model: parseModel(model.value),
-    currencyPair: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
-  }
-  getInterpretData(requestParams).then((res) => {
-    console.log(res.data);
-    
-    if(res.data.code === 0){
-      const data = res.data.data;
-      console.log(data);
-
-      const nodeList: Node2[] = data.nodes;
-      const linkList: Link[] = data.relationships;
-
-      //接收nodes
-      const newNodes = [];
-      for(let i = 0; i < nodeList.length; i++){
-        newNodes.push({
-          id: nodeList[i].id,
-          name: nodeList[i].currency,
-          symbolSize: 5,
-        })
-      }
-      nodes = newNodes;
-      //接收links
-      const newLinks = [];
-      for(let i = 0; i < linkList.length; i++){
-        
-        newLinks.push({
-          source: linkList[i].sourceId,
-          target: linkList[i].targetId,
-          lineStyle: {
-            width: linkList[i].weight,
-          }
-        })
-      }
-      links = newLinks;
-    }else{
-      ElMessage({
-        message: res.data.message,
-        type: 'error',
-        center: true,
-      })
-    }
-  })
-
-  return { nodes, links };
-};
-
 //Echarts图
 const chartRef = ref<HTMLElement | null>(null);
-let chartInstance: echarts.ECharts | null = null;
+let chartInstance: echarts.ECharts;
 
 const initChart = () => {
   if (chartRef.value) {
@@ -149,62 +72,105 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance) return;
 
-  const { nodes, links } = generateData();
+  const nodes: any[] = [];
+  const links: any[] = [];
 
-  console.log(nodes, links);
-  
-  const option = {
-    tooltip: {},
-    series: [
-      { 
-        type: "graph",
-        layout: "force",
-        force: {
-          repulsion: 300, // 节点斥力
-          gravity: 0.2,
-          edgeLength: [50, 250],
-          layoutAnimation: true
-        },
-        data: nodes,
-        links: links,
-        emphasis: {
-          focus: "adjacency",
-          label: {
-            show: true,
-            position: "right",
-          },
-        },
-        roam: true,
-        label: {
-          formatter: "{b}",
-          fontSize: 12,
-        },
-        lineStyle: {
-          color: "black",
-        },
-        edgeLabel: {
-          show: true,
-          formatter: (params: { dataIndex: any; }) => `Link ${params.dataIndex}`,
-        },
+  //获取后端数据nodes和links
+  const requestParams: GraphRequest = {
+    model: parseModel(model.value),
+  }
+  getInterpretData(requestParams).then((res) => {
+    console.log(res.data);
+    
+    if(res.data.code === 0){
+      const data = res.data.data;
+      console.log(data);
+
+      const nodeList: Node2[] = data.nodes;
+      const linkList: Link[] = data.links;
+
+      //接收nodes
+      for(let i = 0; i < nodeList.length; i++){
+        nodes.push({
+          id: nodeList[i].id,
+          name: nodeList[i].name,
+          value: nodeList[i].desc,
+          symbolSize: 15,
+        })
       }
-    ],
-    visualMap: [
-      {
-        type: "piecewise",
-        show: false,
-        dimension: 2,
-        seriesIndex: 1,
-        pieces: [
-          { min: 0, max: 25, color: "#65B581" },
-          { min: 25, max: 50, color: "#FFE58F" },
-          { min: 50, max: 75, color: "#FFA940" },
-          { min: 75, max: 100, color: "#FF6C76" },
-        ],
-      },
-    ],
-  };
+      //接收links
+      for(let i = 0; i < linkList.length; i++){
+        links.push({
+          source: linkList[i].source,
+          target: linkList[i].target,
+          lineStyle: {
+            width: linkList[i].weight,
+          }
+        })
+      }
 
-  chartInstance.setOption(option);
+      console.log(nodes, links);
+  
+      const option = {
+        tooltip: {},
+        series: [
+          { 
+            type: "graph",
+            layout: "force",
+            force: {
+              repulsion: 300, // 节点斥力
+              gravity: 0.2,
+              edgeLength: [50, 250],
+              layoutAnimation: true
+            },
+            data: nodes,
+            links: links,
+            emphasis: {
+              focus: "adjacency",
+              label: {
+                show: true,
+                position: "right",
+              },
+            },
+            roam: true,
+            label: {
+              formatter: "{b}",
+              fontSize: 12,
+            },
+            lineStyle: {
+              color: "black",
+            },
+            edgeLabel: {
+              show: false,
+              formatter: (params: { dataIndex: any; }) => `Link ${params.dataIndex}`,
+            },
+          }
+        ],
+        visualMap: [
+          {
+            type: "piecewise",
+            show: false,
+            dimension: 2,
+            seriesIndex: 1,
+            pieces: [
+              { min: 0, max: 25, color: "#65B581" },
+              { min: 25, max: 50, color: "#FFE58F" },
+              { min: 50, max: 75, color: "#FFA940" },
+              { min: 75, max: 100, color: "#FF6C76" },
+            ],
+          },
+        ],
+      };
+
+      chartInstance.setOption(option);
+    }else{
+      ElMessage({
+        message: res.data.message,
+        type: 'error',
+        center: true,
+      })
+    }
+  })
 };
 
 watch([], () => {
