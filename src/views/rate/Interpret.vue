@@ -48,7 +48,7 @@ watch(currencyPair, () => {
 const model = ref('模型1')
 
 //可供选择的模型
-const modelList = ['模型1', '模型2', '模型3', '模型4',]
+const modelList = ['模型1', '模型2', '模型3']
 
 onMounted(() => {
   updateChart();
@@ -89,22 +89,56 @@ const updateChart = () => {
       const nodeList: Node2[] = data.nodes;
       const linkList: Link[] = data.links;
 
+      // 定义节点类别对应的颜色
+      const categoryColors = [
+        '#5470c6', '#91cc75', '#fac858', '#ee6666', 
+        '#73c0de', '#3ba272', '#fc8452', '#9a60b4'
+      ];
+      
+      // 创建类别映射，用于存储每个类别的名称
+      const categoryMap = new Map();
+
       //接收nodes
       for(let i = 0; i < nodeList.length; i++){
+        const category = i % categoryColors.length;
+        // 如果该类别还没有名称，则使用第一个该类别节点的名称作为类别名
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, nodeList[i].name);
+        }
+        
         nodes.push({
-          id: nodeList[i].id,
+          id: nodeList[i].id-1,
           name: nodeList[i].name,
           value: nodeList[i].desc,
-          symbolSize: 15,
+          meaning: nodeList[i].meaning || '暂无解释',
+          // 根据节点id分配不同类别，实现多样化颜色
+          category: category,
+          symbolSize: 25,
+          itemStyle: {
+            // 根据节点类别设置不同颜色
+            color: categoryColors[category]
+          },
+          label: {
+            show: true,
+            position: 'right',
+            formatter: '{b}',
+            fontSize: 12
+          }
         })
       }
       //接收links
       for(let i = 0; i < linkList.length; i++){
+        // 计算线宽，确保即使权重很小也有基本可见度
+        const lineWidth = Math.max(1, linkList[i].weight * 3);
         links.push({
-          source: linkList[i].source,
-          target: linkList[i].target,
+          source: linkList[i].source-1,
+          target: linkList[i].target-1,
+          value: linkList[i].weight,
           lineStyle: {
-            width: linkList[i].weight,
+            width: lineWidth,
+            // 根据权重设置不同的透明度
+            opacity: 0.5 + (linkList[i].weight / 10),
+            curveness: 0.1
           }
         })
       }
@@ -112,54 +146,77 @@ const updateChart = () => {
       console.log(nodes, links);
   
       const option = {
-        tooltip: {},
+        tooltip: {
+          trigger: 'item',
+          formatter: function(params: any) {
+            if (params.dataType === 'node') {
+              return `
+                <div style="font-weight:bold;margin-bottom:5px">${params.data.name}</div>
+                <div>名称: ${params.data.value || '暂无描述'}</div>
+                <div>含义: ${params.data.meaning || '暂无解释'}</div>
+              `;
+            } else {
+              return `权重: ${params.data.value}`;
+            }
+          }
+        },
+        legend: {
+          show: true,
+          data: Array.from(categoryMap.entries()).map(
+            ([category, name]) => ({ name: String(name) })
+          )
+        },
         series: [
           { 
             type: "graph",
             layout: "force",
             force: {
-              repulsion: 300, // 节点斥力
-              gravity: 0.2,
-              edgeLength: [50, 250],
-              layoutAnimation: true
+              repulsion: 500, // 增加节点斥力
+              gravity: 0.1,
+              edgeLength: [80, 200],
+              layoutAnimation: true,
+              friction: 0.6 // 添加摩擦力使布局更稳定
             },
             data: nodes,
             links: links,
+            categories: Array.from(categoryMap.entries()).map(
+              ([category, name]) => ({ name: String(name) })
+            ),
             emphasis: {
               focus: "adjacency",
+              lineStyle: {
+                width: 5
+              },
               label: {
                 show: true,
                 position: "right",
+                fontSize: 14,
+                fontWeight: 'bold'
               },
             },
             roam: true,
+            draggable: true,
             label: {
+              show: true,
+              position: "right",
               formatter: "{b}",
               fontSize: 12,
+              color: '#333'
             },
             lineStyle: {
-              color: "black",
+              color: 'source',
+              curveness: 0.1
             },
+            edgeSymbol: ['none', 'arrow'],
             edgeLabel: {
               show: false,
-              formatter: (params: { dataIndex: any; }) => `Link ${params.dataIndex}`,
+              formatter: (params: any) => `${params.data.value}`,
             },
+            animation: true,
+            animationDuration: 1500,
+            animationEasingUpdate: 'quinticInOut'
           }
-        ],
-        visualMap: [
-          {
-            type: "piecewise",
-            show: false,
-            dimension: 2,
-            seriesIndex: 1,
-            pieces: [
-              { min: 0, max: 25, color: "#65B581" },
-              { min: 25, max: 50, color: "#FFE58F" },
-              { min: 50, max: 75, color: "#FFA940" },
-              { min: 75, max: 100, color: "#FF6C76" },
-            ],
-          },
-        ],
+        ]
       };
 
       chartInstance.setOption(option);
@@ -189,34 +246,9 @@ onMounted(() => {
       <el-header class="interpret-header">
         <el-row :gutter="20" justify="space-between">
           <el-col :span="4">
-            <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
+            <el-text style="font-size: 25px;font-weight: bold;color: black;">可解释性分析</el-text>
           </el-col>
 
-          <el-col :span="2" style="display: flex;font-size: 20px;">
-            <span :class="`fi fi-${getCurrencyFlag(currencyPair.from)}`" class="currency-flag"></span>
-            <span class="separator">/</span>
-            <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
-          </el-col>
-
-          <el-col :span="4">
-            <el-select v-model="selectedCurrency" placeholder="选择货币对" @change="selectCurrency">
-              <el-option
-                v-for="(item, index) in currencyList"
-                :key="index"
-                :label="`${item.from}/${item.to}`"
-                :value="`${item.from}/${item.to}`">
-                <template #default="">
-                  <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
-                  <span class="separator">/</span>
-                  <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
-                  <span style="padding: 2px;"></span>
-                  <span>{{ item.from }}</span>
-                  <span class="separator">/</span>
-                  <span>{{ item.to }}</span>
-                </template>
-              </el-option>
-            </el-select>
-          </el-col>
 
           <el-col :span="8"></el-col>
 
@@ -272,8 +304,11 @@ onMounted(() => {
 }
 
 .force-chart {
-  width: 90%;
+  width: 100%;
   height: 700px;
   margin: 0 auto;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 10px;
 }
 </style>

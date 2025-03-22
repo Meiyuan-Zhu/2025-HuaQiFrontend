@@ -20,8 +20,8 @@ const loginDisabled = computed(() => {
 // 登录按钮触发
 function handleLogin() {
   //临时测试用
-  sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
-  router.push({path: "/dashboard"})
+  // sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
+  // router.push({path: "/dashboard"})
 
   userLogin({
     username: username.value,
