@@ -39,7 +39,7 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled
 
         <el-menu-item index="/dashboard">
           <el-icon><UserFilled /></el-icon>
-          <span>个人</span>
+          <span>个人中心</span>
         </el-menu-item>
       </el-menu>
 </template>

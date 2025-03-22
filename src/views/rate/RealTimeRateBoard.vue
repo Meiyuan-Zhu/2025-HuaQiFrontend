@@ -147,9 +147,10 @@ const filteredRates = computed(() => {
       sell: sell_price.toFixed(2),
       mid: toRate.toFixed(2),
     };
-  }).filter((item) =>
-    item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  })
+  // .filter((item) =>
+  //   item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
+  // );
 });
 
 // ================== 接口调用 ================== //
@@ -171,14 +172,14 @@ async function fetchAllForexList() {
     if (res.data && res.data.data) {
       rateList.value = res.data.data.map((item: any, index: number) => ({
         id: index + 1,
-        currency: item.currency_code,
-        currency_name: item.currency_name,
-        fromRate: item.central_parity - item.change_rate,
-        toRate: item.central_parity,
-        updateTime: item.date,
-        buy_price: item.buy_price,
-        sell_price: item.sell_price,
-        change_rate: item.change_rate,
+        currency: item.currencyCode,
+        currency_name: item.currencyName,
+        fromRate: item.centralParity - item.changeRate,
+        toRate: item.centralParity,
+        updateTime: item.date.split('T')[0],
+        buy_price: item.buyPrice,
+        sell_price: item.sellPrice,
+        change_rate: item.changeRate,
       }));
       console.log("获取汇率数据成功", rateList.value);
     } else {

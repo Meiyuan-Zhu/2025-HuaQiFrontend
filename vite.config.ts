@@ -19,6 +19,13 @@ export default defineConfig({
     server: {
         port: 3000,   //设定前端运行的端口
         open: true,
+        proxy: {
+            '/api': {
+                target: 'http://118.178.184.189:6020',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api/, '')
+            }
+        }
     },
     base: './'
 })

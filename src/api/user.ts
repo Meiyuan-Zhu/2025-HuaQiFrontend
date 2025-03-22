@@ -16,26 +16,34 @@ export type User = {
     password: string,
 }
 
-// 如果有“Vue: This may be converted to an async function”警告，可以不管
+// 如果有"Vue: This may be converted to an async function"警告，可以不管
 // 用户登录
-export const userLogin = (loginInfo: LoginInfo) => {
-    return axios.post(`${USER_MODULE}/login`, loginInfo, {headers: {'Content-Type': 'application/json'}})
+export const userLogin = (formData: FormData, config?: any) => {
+    return axios.post(`${USER_MODULE}/login`, formData, config)
         .then(res => {
             return res
         })
 }
 
 // 用户注册
-export const userRegister = (registerInfo: RegisterInfo) => {
-    return axios.post(`${USER_MODULE}/register`, registerInfo, {headers: {'Content-Type': 'application/json'}})
+export const userRegister = (formData: FormData) => {
+    return axios.post(`${USER_MODULE}/register`, formData)
         .then(res => {
             return res
         })
 }
 
 //修改用户密码
-export const changePassword = ( oldPassword: string, newPassword: string) => {
-    return axios.put(`${USER_MODULE}/password`, {oldPassword, newPassword}, {headers: {'Content-Type': 'application/json'}})
+export const changePassword = (formData: FormData, config?: any) => {
+    return axios.put(`${USER_MODULE}/password`, formData, config)
+        .then(res => {
+            return res
+        })
+}
+
+// 用户退出登录
+export const userLogout = (config?: any) => {
+    return axios.post(`${USER_MODULE}/logout`, null, config)
         .then(res => {
             return res
         })
