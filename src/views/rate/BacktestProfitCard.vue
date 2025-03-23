@@ -81,6 +81,13 @@ const periodMapping: Record<string, string> = {
   "3Y": "3Year"
 };
 
+const currencyPairMap: Record<string, string> = {
+  "CNY/USD": "中美",
+  "CNY/EUR": "中欧",
+  "CNY/AUD": "中澳",
+  "CNY/JPY": "中日"
+}
+
 // 用于存储加载到的所有收益数据（可能有传统和模型两份）
 const yieldDataArray = ref<YieldJson[]>([]);
 
@@ -113,13 +120,13 @@ async function loadYieldData() {
   // 融合模型文件格式为 "{strategy}+Model_result.json"
   const baseName = props.strategy; // 如 "Aberration"
   const filesToTry = [
-    { filename: `${baseName}_result.json`, title: "传统收益指标" },
-    { filename: `${baseName}+Model_result.json`, title: "模型融合收益指标" }
+    { filename: `${baseName}_result`, title: "传统收益指标" },
+    { filename: `${baseName}+Model_result`, title: "模型融合收益指标" }
   ];
 
   for (const f of filesToTry) {
     try {
-      const url = `http://localhost:3000/data/backtest-profit/${props.currencyPair}/${f.filename}`;
+      const url = `http://118.178.184.189:6020/v1/backtest/proceeds?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
       const res = await axios.get(url);
       // 推入时使用返回数据（假设格式符合 YieldJson），同时覆盖 Strategy 字段为标题（或保留原值也可以）
       yieldDataArray.value.push({

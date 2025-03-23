@@ -172,7 +172,7 @@ const updateChart = () => {
             layout: "force",
             force: {
               repulsion: 500, // 增加节点斥力
-              gravity: 0.1,
+              gravity: 0.5,
               edgeLength: [80, 200],
               layoutAnimation: true,
               friction: 0.6 // 添加摩擦力使布局更稳定

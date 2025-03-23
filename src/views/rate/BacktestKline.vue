@@ -49,6 +49,13 @@
     candlestickData: (string|number)[][];
     dates: string[];
   }>>([]);
+
+  const currencyPairMap: Record<string, string> = {
+  "CNY/USD": "中美",
+  "CNY/EUR": "中欧",
+  "CNY/AUD": "中澳",
+  "CNY/JPY": "中日"
+}
   
   /** 组件挂载 & watch */
   onMounted(() => {
@@ -72,15 +79,15 @@
     // 2) 判断要加载哪些文件(传统 & +Model)
     const baseName = props.strategy; 
     const filesToTry = [
-      { filename: `${baseName}_result.json`, title: "传统策略K线" },
-      { filename: `${baseName}+Model_result.json`, title: "模型融合K线" }
+      { filename: `${baseName}_result`, title: "传统策略K线" },
+      { filename: `${baseName}+Model_result`, title: "模型融合K线" }
     ];
   
     // 3) 并行加载
     const results: Array<{ title:string; raw: any}> = [];
     for (const f of filesToTry) {
       try {
-        const url = `http://localhost:3000/data/backtest-result/${props.currencyPair}/${f.filename}`;
+        const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
         const res = await axios.get(url);
         if (res.data && res.data.data) {  // 添加数据有效性检查
           results.push({ title: f.title, raw: res.data });

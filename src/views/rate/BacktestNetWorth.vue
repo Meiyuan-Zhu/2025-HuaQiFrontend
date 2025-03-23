@@ -33,6 +33,13 @@ const loadedData = ref<Array<{
   dates: string[];
 }>>([]);
 
+const currencyPairMap: Record<string, string> = {
+  "CNY/USD": "中美",
+  "CNY/EUR": "中欧",
+  "CNY/AUD": "中澳",
+  "CNY/JPY": "中日"
+}
+
 /** 组件挂载 & 监听 props 变化 */
 onMounted(() => {
   loadAndRender();
@@ -55,15 +62,15 @@ async function loadAndRender() {
   // 1. 判断要加载哪些文件
 const baseName = props.strategy; 
 const filesToTry = [
-    { filename: `${baseName}_result.json`, title: "传统策略净值折线图" },
-    { filename: `${baseName}+Model_result.json`, title: "模型融合净值折线图" }
+    { filename: `${baseName}_result`, title: "传统策略净值折线图" },
+    { filename: `${baseName}+Model_result`, title: "模型融合净值折线图" }
 ];
 
 // 2. 并行加载
 const results: Array<{ title: string; raw: any }> = [];
   for (const f of filesToTry) {
     try {
-      const url = `http://localhost:3000/data/backtest-result/${props.currencyPair}/${f.filename}`;
+      const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
       const res = await axios.get(url);
       results.push({ title: f.title, raw: res.data });
       console.log(`文件 ${f.filename} 加载成功`);

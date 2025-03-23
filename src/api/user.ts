@@ -1,15 +1,6 @@
 import {axios} from '../utils/request'
 import {USER_MODULE} from './_prefix'
 
-type LoginInfo = {
-    username: string,
-    password: string
-}
-
-type RegisterInfo = {
-    username: string,
-    password: string,
-}
 
 export type User = {
     username: string,
