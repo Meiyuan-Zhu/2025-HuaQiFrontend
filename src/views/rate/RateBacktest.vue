@@ -66,24 +66,33 @@ const currentRate = ref({
   changePercent: 0
 });
 
-// 获取实时汇率数据的函数
-const ALL_FOREX_API = "http://127.0.0.1:4523/m1/5986862-5675261-default/v1/rate/get_all_forex";
+const BASE_URL = 'http://118.178.184.189:6020';
+const ALL_FOREX_API = `${BASE_URL}/v1/rate/get_all_forex`;
+
+// 添加请求配置
+const requestConfig = {
+  headers: {
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,  // 如果需要token
+    'Content-Type': 'application/json'
+  }
+};
 
 async function fetchCurrentRate() {
   try {
-    const res = await axios.get(ALL_FOREX_API);
+    const res = await axios.get(ALL_FOREX_API, requestConfig);
+    console.log("获取汇率数据成功", res.data);
     if (res.data && res.data.data) {
       // 找到对应的货币对数据
       const rateData = res.data.data.find((item: any) => {
         // 从 selectedPair (如 "CNY/JPY") 中提取目标货币代码
         const targetCurrency = selectedPair.value.split('/')[1];
-        return item.currency_code === targetCurrency;
+        return item.currencyCode === targetCurrency;
       });
       
       if (rateData) {
         // 使用中间价作为当前汇率
-        const rate = Number(rateData.central_parity);
-        const change = Number(rateData.change_rate);
+        const rate = Number(rateData.centralParity);
+        const change = Number(rateData.changeRate);
         
         currentRate.value = {
           rate: rate,

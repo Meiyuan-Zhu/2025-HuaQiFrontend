@@ -11,7 +11,11 @@
           <div class="exact-card"
         v-for="item in filteredRates"
         :key="item.id"
-        :class="{'trend-up': item.isUp, 'trend-down': !item.isUp}"
+        :class="{
+          'trend-up': item.trend === 'up',
+          'trend-down': item.trend === 'down',
+          'trend-neutral': item.trend === 'neutral'
+        }"
         @click="showTrend(item)">
             <div class="card-content">
               <!-- 左边：货币代码、中文货币名、日期 -->
@@ -27,8 +31,12 @@
               <div class="right-part">
                 <div class="diff-row">
                   <span class="big-diff">{{ item.diffVal }}</span>
-                  <span :class="item.isUp ? 'arrow-up' : 'arrow-down'">
-                    {{ item.isUp ? '⬆' : '⬇' }}
+                  <span :class="{
+                    'arrow-up': item.trend === 'up',
+                    'arrow-down': item.trend === 'down',
+                    'arrow-neutral': item.trend === 'neutral'
+                  }">
+                    {{ item.trend === 'up' ? '⬆' : item.trend === 'down' ? '⬇' : '—' }}
                   </span>
                 </div>
                 
@@ -57,7 +65,18 @@
       :close-on-click-modal="false"
     >
       <div class="trend-content">
-
+        <!-- 添加时间范围选择 -->
+    <div class="trend-controls">
+      <el-radio-group v-model="currentPeriod" size="large">
+        <el-radio-button 
+          v-for="option in periodOptions" 
+          :key="option.value" 
+          :label="option.value"
+        >
+          {{ option.label }}
+        </el-radio-button>
+      </el-radio-group>
+    </div>
         <v-chart class="trend-chart" :option="chartOption" autoresize />
       </div>
     </el-dialog>
@@ -65,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
 
@@ -94,8 +113,8 @@ use([
 // ================== 接口定义 ================== //
 interface RateItem {
   id: number;
-  currency: string; // 对应接口字段 currency_code
-  currency_name: string; // 对应接口字段 currency_name
+  currency: string; // 对应接口字段 currencyCode
+  currency_name: string; // 对应接口字段 currencyName
   fromRate: number; 
   toRate: number;   
   updateTime: string; //date
@@ -112,7 +131,6 @@ interface TrendDataItem {
 // ================== 响应式数据 ================== //
 const baseCurrency = ref("CNY");   
 const searchQuery = ref("");
-const selectedTimeRange = ref("1W");
 
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");
@@ -129,9 +147,13 @@ const filteredRates = computed(() => {
     const sell_price = r.sell_price ?? 0;
     const change_rate = r.change_rate ?? 0;
     const toRate = r.toRate ?? 0;
+    
+    let trend = 'neutral';  // 新增状态：neutral
+    if (change_rate > 0) trend = 'up';
+    else if (change_rate < 0) trend = 'down';
+    
     return {
-      ...r, // 包括原有的 id, currency, currency_name, updateTime 等
-        // 如果原始值可能为 undefined，则补充默认值
+      ...r,
       buy_price,
       sell_price,
       change_rate,
@@ -142,7 +164,7 @@ const filteredRates = computed(() => {
       fromRate: r.toRate - change_rate,
       toRate,
       diffVal: change_rate.toFixed(2),
-      isUp: change_rate >= 0,
+      trend,  // 使用新的trend状态替代原来的isUp
       buy: buy_price.toFixed(2),
       sell: sell_price.toFixed(2),
       mid: toRate.toFixed(2),
@@ -169,18 +191,27 @@ async function fetchAllForexList() {
   try {
     const res = await axios.get(ALL_FOREX_API, requestConfig);
     if (res.data && res.data.data) {
+      // 打印原始数据看看
+      console.log("原始数据:", res.data.data);
+      
       rateList.value = res.data.data.map((item: any, index: number) => ({
         id: index + 1,
-        currency: item.currency_code,
-        currency_name: item.currency_name,
-        fromRate: item.central_parity - item.change_rate,
-        toRate: item.central_parity,
-        updateTime: item.date,
-        buy_price: item.buy_price,
-        sell_price: item.sell_price,
-        change_rate: item.change_rate,
+        currency: item.currencyCode,
+        currency_name: item.currencyName,
+        fromRate: item.centralParity - item.changeRate,
+        toRate: item.centralParity,
+        updateTime: item.date.substring(0, 10),
+        buy_price: item.buyPrice,
+        sell_price: item.sellPrice,
+        change_rate: item.changeRate,
       }));
-      console.log("获取汇率数据成功", rateList.value);
+      
+      // 打印处理后的数据看看
+      console.log("处理后的数据:", rateList.value);
+      // 打印每个货币的涨跌情况
+      rateList.value.forEach(item => {
+        console.log(`${item.currency}: change_rate = ${item.change_rate}`);
+      });
     } else {
       console.error("接口返回数据格式不符合预期", res.data);
     }
@@ -193,24 +224,38 @@ onMounted(() => {
 })
 
 // 点击卡片时，从接口2获取单个外汇趋势数据
+
+// 添加时间范围选项
+const periodOptions = [
+  { label: '周', value: 'week' },
+  { label: '月', value: 'month' },
+  { label: '年', value: 'year' }
+];
+
+// 添加当前选中的时间范围
+const currentPeriod = ref('week');
+
 const showTrend = async (row: RateItem) => {
   fromCurrency.value = row.currency;
   toCurrency.value = baseCurrency.value;
   showTrendModal.value = true;
-  await fetchSingleForexTrend(row.currency);
+  await fetchSingleForexTrend(periodOptions.find(opt => opt.value === currentPeriod.value)?.label || '周', row.currency_name);
   updateTrendData(); // 更新图表
 };
 
-async function fetchSingleForexTrend(currencyCode: string) {
+async function fetchSingleForexTrend(period: string, moneyCode: string) {
   try {
     const res = await axios.get(SINGLE_FOREX_API, {
       ...requestConfig,
-      params: { symbol: currencyCode }
+      params: { 
+        period: period,
+        money_code: moneyCode
+      }
     });
-    if (res.data && res.data.data && res.data.data.data) {
-      trendData.value = res.data.data.data.map((item: any) => ({
-        date: item.date,
-        rate: item.central_parity,
+    if (res.data && res.data.data && res.data.data.rates) {
+      trendData.value = res.data.data.rates.map((item: any) => ({
+        date: item.date.substring(0, 10),
+        rate: item.centralParity,
       }));
       console.log("获取趋势数据成功", trendData.value);
     } else {
@@ -220,6 +265,14 @@ async function fetchSingleForexTrend(currencyCode: string) {
     console.error("获取趋势数据失败", error);
   }
 }
+
+// 监听时间范围变化，重新获取数据
+watch(currentPeriod, async (newPeriod) => {
+  if (showTrendModal.value && fromCurrency.value) {
+    await fetchSingleForexTrend(fromCurrency.value, newPeriod);
+    updateTrendData();
+  }
+});
 
 // ================== 图表配置 ================== //
 // chartOption: vue-echarts 绑定的配置对象
@@ -299,6 +352,7 @@ const updateTrendData = () => {
     },
     yAxis: {
       type: "value",
+      scale: true,
       axisLabel: {
         formatter: (value: number) => value.toFixed(4),
         color: '#64748b',
@@ -349,94 +403,6 @@ const updateTrendData = () => {
   ElMessage.success("趋势数据已更新");
 }
 
-// 辅助函数：根据时间范围返回数据点数量
-const getCountFromTimeRange = (timeRange: string) => {
-  switch (timeRange) {
-    case "1W": return 7;
-    case "1M": return 30;
-    case "1Q": return 90;
-    case "1Y": return 365;
-    case "3Y": return 365 * 3;
-    default: return 30;
-  }
-};
-
-// 上方K线图
-const chartRef = ref<HTMLElement | null>(null);
-let chartInstance: echarts.ECharts | null = null;
-const initChart = () => {
-  if (chartRef.value) {
-    chartInstance = (chartRef.value as any).getEchartsInstance();
-    updateChart();
-  }
-};
-const updateChart = () => {
-  if (!chartInstance) return;
-  const count = getCountFromTimeRange(selectedTimeRange.value);
-  const dates = [];
-  const dataReal = [];
-  const dataPred = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    dates.push(`${year}-${month}-${day}`);
-    dataReal.push((Math.random() * 10 + 90).toFixed(2));
-    dataPred.push((Math.random() * 10 + 90).toFixed(2));
-  }
-  const option = {
-    tooltip: { trigger: "axis" },
-    legend: { data: ["真实汇率", "预测汇率"] },
-    xAxis: { type: "category", data: dates },
-    yAxis: { type: "value" },
-    dataZoom: [
-      {
-        type: "slider",
-        show: true,
-        xAxisIndex: 0,
-        start: 0,
-        end: 100,
-      },
-      {
-        type: "inside",
-        xAxisIndex: 0,
-      },
-    ],
-    series: [
-      {
-        name: "真实汇率",
-        type: "line",
-        data: dataReal,
-        smooth: true,
-        markPoint: {
-          data: [
-            { type: "max", name: "Buy" },
-            { type: "min", name: "Sell" },
-          ],
-        },
-      },
-      {
-        name: "预测汇率",
-        type: "line",
-        data: dataPred,
-        smooth: true,
-      },
-    ],
-  };
-  chartInstance.setOption(option);
-};
-
-
-watch([baseCurrency, selectedTimeRange], () => {
-  nextTick(() => {
-    updateChart();
-  });
-});
-onMounted(() => {
-  initChart();
-});
 
 </script>
 
@@ -524,7 +490,6 @@ onMounted(() => {
     rgba(239, 68, 68, 0.08) 100%
   );
   border: 1px solid rgba(239, 68, 68, 0.3);
-  position: relative;
 }
 
 .trend-up::before {
@@ -548,7 +513,6 @@ onMounted(() => {
     rgba(34, 197, 94, 0.08) 100%
   );
   border: 1px solid rgba(34, 197, 94, 0.3);
-  position: relative;
 }
 
 .trend-down::before {
@@ -561,6 +525,30 @@ onMounted(() => {
   background: linear-gradient(90deg, 
     rgba(34, 197, 94, 0.7),
     rgba(34, 197, 94, 0.3)
+  );
+  border-radius: 3px 3px 0 0;
+}
+
+/* 添加中性（不涨不跌）卡片样式 */
+.trend-neutral {
+  background: linear-gradient(165deg, 
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(59, 130, 246, 0.08) 100%
+  );
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  position: relative;
+}
+
+.trend-neutral::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    rgba(59, 130, 246, 0.7),
+    rgba(59, 130, 246, 0.3)
   );
   border-radius: 3px 3px 0 0;
 }
@@ -611,6 +599,19 @@ onMounted(() => {
 
 .exact-card:hover .arrow-down {
   transform: translateY(3px);
+}
+
+/* 添加中性箭头样式 */
+.arrow-neutral {
+  color: #3b82f6;  /* 使用蓝色 */
+  font-size: 1.6rem;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  transition: transform 0.3s ease;
+}
+
+/* 修改箭头悬浮效果 */
+.exact-card:hover .arrow-neutral {
+  transform: scale(1.1);  /* 对于中性状态使用缩放效果而不是上下移动 */
 }
 
 /* 修改价格行样式 */
