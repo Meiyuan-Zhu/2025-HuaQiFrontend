@@ -89,7 +89,7 @@ const props = defineProps<{
 const periodMapping: Record<string, string> = {
   "1W": "1Week",
   "1M": "1Month",
-  "1Q": "1Quarter",
+  "1S": "1Season",
   "1Y": "1Year",
   "3Y": "3Year"
 };
