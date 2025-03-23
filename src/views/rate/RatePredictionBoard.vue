@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import * as echarts from "echarts";
-import { ref, reactive, watch, onMounted, nextTick, onUnmounted } from "vue";
+import { ref, reactive, watch, onMounted, nextTick, onUnmounted, computed } from "vue";
 import { getCurrencyFlag, parseCurrency, parseCurrencyFullName } from "../../utils/index";
 import { Download } from "@element-plus/icons-vue"; //图标
-import * as jspdf from "jspdf";
 import "../../assets/cnfont";
 import {
   ExplanationRequest,
@@ -11,6 +10,33 @@ import {
   getPredict,
   PredictRequest,
 } from "../../api/prediction";
+import axios from 'axios';
+import { ElMessage } from 'element-plus';
+import MarkdownIt from 'markdown-it';
+
+// 创建 markdown-it 实例并配置所有选项
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+  breaks: true,  // 允许换行符转换为 <br>
+  // 添加自定义处理，确保 HTML 实体如 &#10; 被正确解析为换行符
+  xhtmlOut: false
+});
+
+// 添加类型声明
+interface MarkdownToken {
+  content: string;
+  [key: string]: any;
+}
+
+// 添加自定义替换，确保 &#10; 被正确处理为换行符
+md.renderer.rules.text = function(tokens: MarkdownToken[], idx: number) {
+  let text = tokens[idx].content;
+  // 将 &#10; 替换为实际的换行符，然后 breaks: true 会将其转换为 <br>
+  text = text.replace(/&#10;/g, '\n');
+  return text;
+};
 
 //存放预测数据列表
 const predictionList = ref([]);
@@ -45,7 +71,7 @@ watch(currencyPair, () => {
 const predictionPeriod = ref("1周");
 
 //可供选择的预测周期
-const predictionPeriodList = ["1周", "2周"];
+const predictionPeriodList = ["1周", "2周", "1月"];
 
 // 根据时间范围返回对应数据点数量
 const getCountFromTimeRange = (timeRange: string) => {
@@ -371,108 +397,160 @@ onUnmounted(() => {
   }
 });
 
-//是否展示AI报告
-const showAIReport = ref(false);
-
-//大模型回复的文本(写死的)
-const reportText = ref(
-  "这是基于本项目AI模型生成的汇率预测报告,预测结果仅供参考。\n你的预计收益是100美元。\n你需要在明天卖出。"
-);
-
-//文本框展示的文本
+// 存储完整的 Markdown 文本
+const fullReportText = ref("");
+// 用于流式显示的文本
 const textOutput = ref("");
+// 是否正在流式生成
+const isStreaming = ref(false);
 
-//生成AI报告的流式数据
-const printLine = async () => {
-  if (textOutput.value.length >= reportText.value.length) {
-    return;
-  } else {
-    setTimeout(() => {
-      textOutput.value += reportText.value[textOutput.value.length];
-      printLine();
-    }, 50);
-  }
+// 将 Markdown 转换为 HTML
+const reportHtml = computed(() => {
+  return md.render(textOutput.value);
+});
+
+// 加载状态
+const isLoading = ref(false);
+const showReport = ref(false);
+
+// 添加类型声明
+const currencyPairMap: Record<string, string> = {
+  "USD": "中美",
+  "EUR": "中欧",
+  "JPY": "中日",
+  "AUD": "中澳",
 };
 
+const timeSpanMap: Record<string, string> = {
+  "1周": "1Week",
+  "2周": "2Week",
+  "1月": "1Month",
+};
+
+// 流式生成文本效果，添加类型声明
+const streamText = async (text: string) => {
+  isStreaming.value = true;
+  textOutput.value = "";
+  
+  // 设置打字速度 (ms)
+  const typingSpeed = 20;
+  
+  // 逐字显示文本
+  for (let i = 0; i < text.length; i++) {
+    textOutput.value += text[i];
+    // 使用 await 和 setTimeout 创建延迟
+    await new Promise(resolve => setTimeout(resolve, typingSpeed));
+  }
+  
+  isStreaming.value = false;
+};
+
+// 生成报告
 const generateReport = async () => {
-  //调用后端接口，生成AI报告
+  // 调用后端接口，生成AI报告
   const explanationRequest: ExplanationRequest = {
-    currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
-    timeSpan: getCountFromTimeRange(predictionPeriod.value),
-    data: predictionList.value.map((item: any) => ({
-      date: item.date,
-      pred: typeof item.pred === 'number' ? formatNumber(item.pred) : item.pred
-    })),
+    currencyPair: currencyPairMap[currencyPair.to as keyof typeof currencyPairMap],
+    timeSpan: timeSpanMap[predictionPeriod.value as keyof typeof timeSpanMap],
   };
   console.log(explanationRequest);
-
-  showAIReport.value = true;
-  setTimeout(() => {
-    //视窗平滑滚动到底部
-    const textArea = document.getElementById("textArea");
-    if (textArea) {
-      textArea.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, 150);
-
-  getExplanation(explanationRequest).then((res) => {
+  
+  isLoading.value = true;
+  showReport.value = true;
+  
+  try {
+    const res = await getExplanation(explanationRequest);
     console.log(res.data);
 
     if (res.data.code === 0) {
-      textOutput.value = res.data.data;
-      //展示AI报告，缩小表格视图
-      showAIReport.value = true;
-      const echart = document.getElementById("echart");
-      if (echart) {
-        //scroll到echart位置
-        echart.scrollIntoView({ behavior: "smooth" });
-      }
-      printLine();
+      fullReportText.value = res.data.data;
+      
+      // 滚动到报告区域
+      setTimeout(() => {
+        const echart = document.getElementById("echart");
+        if (echart) {
+          echart.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+      
+      // 开始流式生成文本
+      await streamText(fullReportText.value);
     } else {
-      ElMessage({
-        message: res.data.msg,
-        type: "error",
-        center: true,
-      });
+      ElMessage.error("生成报告失败：" + (res.data.message || "未知错误"));
+      showReport.value = false;
     }
-  });
-};
-
-const closeReport = () => {
-  const echart = document.getElementById("echart");
-  if (echart) {
-    showAIReport.value = false;
+  } catch (error) {
+    console.error("生成报告出错", error);
+    ElMessage.error("生成报告出错，请稍后重试");
+    showReport.value = false;
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const downloadReport = () => {
-  //将reportText字符串文本转化成pdf并下载
-  const content = reportText.value;
-  const doc = new jspdf.jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margins = { left: 10, top: 10, bottom: 10 };
-  const maxWidth = pageWidth - margins.left * 2;
-  const filename = "AI报告.pdf";
+// 关闭报告
+const closeReport = () => {
+  showReport.value = false;
+};
 
-  doc.setFont("cnfont");
-
-  // 分割文本为适合宽度的行数组
-  const lines = doc.splitTextToSize(content, maxWidth);
-
-  let yPos = margins.top;
-  const lineHeight = 10; // 根据字体大小调整行高
-
-  lines.forEach((line: string | string[]) => {
-    // 检查是否需要分页
-    if (yPos > doc.internal.pageSize.getHeight() - margins.bottom) {
-      doc.addPage();
-      yPos = margins.top;
+// 下载报告
+const downloadReport = async () => {
+  try {
+    // 准备请求参数
+    const requestData = {
+      currencyPair: currencyPairMap[currencyPair.to as keyof typeof currencyPairMap],
+      timeSpan: timeSpanMap[predictionPeriod.value as keyof typeof timeSpanMap]
+    };
+    
+    console.log('发送PDF请求参数:', requestData);
+    
+    // 显示加载状态
+    isLoading.value = true;
+    
+    // 使用 axios 发送请求，确保正确设置 responseType
+    const response = await axios({
+      method: 'post',
+      url: 'http://118.178.184.189:6020/v1/prediction/get_analysis_pdf',
+      data: requestData,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}` // 如果需要认证
+      },
+      responseType: 'blob' // 关键：指定响应类型为 blob
+    });
+    
+    // 检查响应
+    if (response.status !== 200) {
+      throw new Error(`服务器响应错误: ${response.status}`);
     }
-    doc.text(line, margins.left, yPos);
-    yPos += lineHeight;
-  });
-
-  doc.save(filename); // 触发下载
+    
+    // 获取 blob 数据
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = "汇率预测报告.pdf";
+    
+    // 添加到文档并触发点击
+    document.body.appendChild(a);
+    a.click();
+    
+    // 清理
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    // 显示成功消息
+    ElMessage.success('报告下载成功');
+    
+  } catch (error: any) {
+    console.error('下载报告失败:', error);
+    ElMessage.error(`下载报告失败: ${error.message || '请稍后重试'}`);
+  } finally {
+    // 无论成功失败，都关闭加载状态
+    isLoading.value = false;
+  }
 };
 </script>
 
@@ -503,7 +581,7 @@ const downloadReport = () => {
               {{ currencyPair.from + "/" + currencyPair.to }}
             </div>
           </div>
-          <div v-if="!showAIReport" class="rate-info">
+          <div v-if="!showReport" class="rate-info">
             <el-button @click="generateReport" type="primary" color="#626aef">
               生成AI报告
             </el-button>
@@ -571,33 +649,25 @@ const downloadReport = () => {
         </div>
       </div>
 
-      <div v-if="showAIReport" class="report-section">
+      <div v-if="showReport" class="report-section">
         <div class="report-header">
           <h3>AI 分析报告</h3>
           <div class="report-actions">
-            <el-button
-              type="primary"
-              :icon="Download"
-              size="small"
-              @click="downloadReport"
-              >下载报告</el-button
-            >
-            <el-button type="default" size="small" @click="closeReport"
-              >关闭</el-button
-            >
+            <el-button type="primary" size="small" @click="downloadReport" :icon="Download">
+              下载报告
+            </el-button>
+            <el-button type="default" size="small" @click="closeReport">
+              关闭
+            </el-button>
           </div>
         </div>
-        <div class="report-content">
-          <el-input
-            id="textArea"
-            v-model="textOutput"
-            type="textarea"
-            :rows="10"
-            readonly
-            resize="none"
-            class="textArea"
-          />
-        </div>
+        
+        <!-- 使用 v-html 渲染 Markdown 转换后的 HTML -->
+        <div 
+          class="report-content markdown-body" 
+          v-html="reportHtml"
+          :class="{ 'typing-cursor': isStreaming }"
+        ></div>
       </div>
     </div>
   </div>
@@ -766,32 +836,43 @@ const downloadReport = () => {
 }
 
 .report-section {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
+  position: relative;
   margin-top: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .report-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
 }
 
 .report-header h3 {
   font-size: 18px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #374151;
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .report-actions {
   display: flex;
   gap: 8px;
+}
+
+.report-content {
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+  background: #ffffff;
 }
 
 /* 响应式设计 */
@@ -887,5 +968,166 @@ const downloadReport = () => {
 
 .flags-wrapper:hover .exchange-arrow {
   transform: translateX(5px);
+}
+
+/* 添加 Markdown 样式 */
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  padding: 16px;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+  color: #2563eb;
+}
+
+.markdown-body h4 {
+  font-size: 1em;
+}
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body li {
+  margin-top: 0.25em;
+  display: list-item;
+  text-align: -webkit-match-parent;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+.markdown-body hr {
+  height: 0.25em;
+  padding: 0;
+  margin: 24px 0;
+  background-color: #e1e4e8;
+  border: 0;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+  margin: 0 0 16px 0;
+}
+
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(27, 31, 35, 0.05);
+  border-radius: 3px;
+}
+
+.markdown-body pre {
+  word-wrap: normal;
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f6f8fa;
+  border-radius: 3px;
+  margin-bottom: 16px;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .markdown-body {
+    color: #c9d1d9;
+  }
+  
+  .markdown-body h1,
+  .markdown-body h2 {
+    border-bottom-color: #30363d;
+  }
+  
+  .markdown-body h3 {
+    color: #60a5fa;
+  }
+  
+  .markdown-body blockquote {
+    color: #8b949e;
+    border-left-color: #30363d;
+  }
+  
+  .markdown-body code {
+    background-color: rgba(240, 246, 252, 0.15);
+  }
+  
+  .markdown-body pre {
+    background-color: #161b22;
+  }
+  
+  .markdown-body hr {
+    background-color: #30363d;
+  }
+}
+
+/* 添加打字机光标效果 */
+.typing-cursor::after {
+  content: '|';
+  animation: blink 1s step-start infinite;
+  font-weight: bold;
+  color: #3b82f6;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 </style>
