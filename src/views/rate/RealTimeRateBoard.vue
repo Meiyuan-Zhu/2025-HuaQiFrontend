@@ -60,24 +60,32 @@
     <!-- 汇率趋势弹窗 -->
     <el-dialog
       v-model="showTrendModal"
-      title="汇率变化趋势"
+      :title="`${fromCurrency} / ${toCurrency} 汇率趋势`"
       width="80%"
       :close-on-click-modal="false"
+      class="trend-dialog"
     >
       <div class="trend-content">
         <!-- 添加时间范围选择 -->
-    <div class="trend-controls">
-      <el-radio-group v-model="currentPeriod" size="large">
-        <el-radio-button 
-          v-for="option in periodOptions" 
-          :key="option.value" 
-          :label="option.value"
-        >
-          {{ option.label }}
-        </el-radio-button>
-      </el-radio-group>
-    </div>
-        <v-chart class="trend-chart" :option="chartOption" autoresize />
+        <div class="trend-controls">
+          <div class="trend-header">
+            <h3 class="trend-title">时间范围</h3>
+            <div class="trend-subtitle">选择要查看的时间跨度</div>
+          </div>
+          <el-radio-group v-model="currentPeriod" size="large">
+            <el-radio-button 
+              v-for="option in periodOptions" 
+              :key="option.value" 
+              :label="option.value"
+              class="period-button"
+            >
+              {{ option.label }}
+            </el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="chart-container">
+          <v-chart class="trend-chart" :option="chartOption" autoresize />
+        </div>
       </div>
     </el-dialog>
   </el-main>
@@ -235,7 +243,16 @@ const periodOptions = [
 // 添加当前选中的时间范围
 const currentPeriod = ref('week');
 
+// 添加一个清空图表的函数
+const clearChart = () => {
+  trendData.value = [];
+  chartOption.value = {};
+};
+
 const showTrend = async (row: RateItem) => {
+  // 先清空图表数据
+  clearChart();
+  
   fromCurrency.value = row.currency;
   toCurrency.value = baseCurrency.value;
   showTrendModal.value = true;
@@ -253,9 +270,13 @@ async function fetchSingleForexTrend(period: string, moneyCode: string) {
       }
     });
     if (res.data && res.data.data && res.data.data.rates) {
+      // 修改数据映射以匹配接口返回格式
       trendData.value = res.data.data.rates.map((item: any) => ({
-        date: item.date.substring(0, 10),
-        rate: item.centralParity,
+        date: item.date.substring(0, 10),  // 从完整的日期时间中只取日期部分
+        rate: item.centralParity,          // 使用中间价(centralParity)作为趋势图的数据
+        buyPrice: item.buyPrice,           // 添加买入价
+        sellPrice: item.sellPrice,         // 添加卖出价
+        changeRate: item.changeRate        // 添加变化率
       }));
       console.log("获取趋势数据成功", trendData.value);
     } else {
@@ -266,11 +287,19 @@ async function fetchSingleForexTrend(period: string, moneyCode: string) {
   }
 }
 
-// 监听时间范围变化，重新获取数据
+// 监听时间范围变化时也需要先清空
 watch(currentPeriod, async (newPeriod) => {
   if (showTrendModal.value && fromCurrency.value) {
-    await fetchSingleForexTrend(fromCurrency.value, newPeriod);
-    updateTrendData();
+    // 先清空图表数据
+    clearChart();
+    
+    const periodLabel = periodOptions.find(opt => opt.value === newPeriod)?.label || '周';
+    const currentCurrency = rateList.value.find(item => item.currency === fromCurrency.value);
+    if (currentCurrency) {
+      console.log("重新获取数据", periodLabel, currentCurrency.currency_name);
+      await fetchSingleForexTrend(periodLabel, currentCurrency.currency_name);
+      updateTrendData();
+    }
   }
 });
 
@@ -707,144 +736,101 @@ const updateTrendData = () => {
 }
 
 /* 趋势弹窗样式优化 */
-:deep(.el-dialog) {
-  background: #ffffff;
-  border-radius: 20px;
-  border: none;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  max-width: 1200px;
-  margin: 15vh auto !important;  /* 添加上边距，并使用 !important 确保覆盖默认样式 */
+.trend-dialog {
+  :deep(.el-dialog__header) {
+    padding: 20px 24px;
+    margin: 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    letter-spacing: 0.5px;
+  }
+
+  :deep(.el-dialog__headerbtn) {
+    top: 20px;
+    right: 20px;
+    
+    .el-dialog__close {
+      font-size: 1.2rem;
+      color: #64748b;
+      transition: color 0.2s;
+      
+      &:hover {
+        color: #3b82f6;
+      }
+    }
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 0;
+    background: #f8fafc;
+  }
 }
 
-:deep(.el-dialog__header) {
-  padding: 20px 24px;
-  margin: 0;
-  border-bottom: 1px solid #edf2f7;
-  background: #ffffff;
-}
-
-:deep(.el-dialog__title) {
-  color: #1a1a1a;
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: 1px;
-}
-
-:deep(.el-dialog__headerbtn .el-dialog__close) {
-  color: #666666;
-}
-
-:deep(.el-dialog__body) {
+.trend-content {
   padding: 24px;
-  color: #1a1a1a;
-  background: #ffffff;
-  max-height: 60vh;  /* 限制最大高度 */
-  overflow-y: auto;  /* 如果内容过多则显示滚动条 */
 }
 
-/* 美化弹窗滚动条 */
-:deep(.el-dialog__body::-webkit-scrollbar) {
-  width: 6px;
-}
-
-:deep(.el-dialog__body::-webkit-scrollbar-track) {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-:deep(.el-dialog__body::-webkit-scrollbar-thumb) {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-:deep(.el-dialog__body::-webkit-scrollbar-thumb:hover) {
-  background: #94a3b8;
-}
-
-/* 控制区域样式优化 */
 .trend-controls {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-/* Select 下拉框样式优化 */
-:deep(.el-select .el-input__wrapper) {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-:deep(.el-select .el-input__wrapper:hover) {
-  border-color: #3b82f6;
-}
-
-:deep(.el-select .el-input__inner) {
-  color: #1a1a1a;
-}
-
-/* 货币对选择器样式 */
-.currency-pair {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 分隔符样式优化 */
-.currency-separator {
-  color: #3b82f6;
-  font-size: 1.2rem;
-  margin: 0 10px;
-}
-
-/* 图表容器样式优化 */
-.trend-chart {
-  height: 350px;
-  width: 100%;
-  margin-top: 20px;
-  background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
-  border-radius: 16px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
-/* 优化图表样式 */
-:deep(.trend-chart) {
-  /* 坐标轴颜色 */
-  --el-color-axis: rgba(255, 255, 255, 0.65);
+.trend-header {
+  margin-bottom: 16px;
+}
+
+.trend-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.trend-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.period-button {
+  :deep(.el-radio-button__inner) {
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: #f1f5f9;
+    }
+  }
   
-  .echarts-tooltip {
-    background: rgba(0, 26, 77, 0.95) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    padding: 12px;
-    border-radius: 8px;
-    color: #ffffff;
-  }
-
-  /* 坐标轴文字颜色 */
-  path {
-    stroke: var(--el-color-axis);
-  }
-
-  text {
-    fill: var(--el-color-axis);
-  }
-
-  /* 网格线颜色 */
-  .el-line {
-    stroke: rgba(255, 255, 255, 0.1);
+  &.is-active {
+    :deep(.el-radio-button__inner) {
+      background-color: #3b82f6;
+      border-color: #3b82f6;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+    }
   }
 }
 
-/* 移除分页样式 */
-.pagination {
-  display: none;
+.chart-container {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.trend-chart {
+  height: 400px;  /* 调整图表高度 */
+  width: 100%;
 }
 
 /* 调整 header 容器样式 */
