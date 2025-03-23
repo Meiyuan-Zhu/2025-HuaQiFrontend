@@ -33,9 +33,9 @@ export const getPredict = (params: PredictRequest) => {
   接口地址：https://app.apifox.com/link/project/5986862/apis/api-268986308
 */
 export interface ExplanationRequest {
-    currency: string;
-    data: Datum[];
-    timeSpan: number;
+    currencyPair: string;
+    // data: Datum[];
+    timeSpan: string;
     [property: string]: any;
 }
 
@@ -46,8 +46,11 @@ export interface Datum {
 }
 
 export const getExplanation = (explanationRequest: ExplanationRequest) => {
-    return axios.post(`${PREDICTION_MODULE}/explanation`, explanationRequest, { headers: { 'Content-Type': 'application/json' } })
+    return axios.post(`http://118.178.184.189:6020/v1/prediction/get_analysis`, explanationRequest, { headers: { 'Content-Type': 'application/json' } })
         .then((res) => {
+            if (res.data && res.data.data) {
+                res.data.data = res.data.data.replace(/&#10;/g, '\n');
+            }
             return res
     })
 }
