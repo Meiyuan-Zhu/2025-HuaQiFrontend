@@ -1,7 +1,20 @@
 <template>
   <div class="kline-section">
-    <div v-if="selectedYields.length === 0">
-      <p>暂无数据</p>
+    <div v-if="selectedYields.length === 0" class="no-data-container">
+      <el-empty 
+        description="暂无收益数据" 
+        :image-size="120"
+      >
+        <template #image>
+          <div class="custom-empty-icon">
+            <i class="el-icon-money"></i>
+          </div>
+        </template>
+        <template #description>
+          <p class="no-data-text">暂无收益数据</p>
+          <p class="no-data-hint">请尝试选择其他货币对或策略</p>
+        </template>
+      </el-empty>
     </div>
     <div v-for="(item, index) in selectedYields" :key="index" class="kline-box">
       <h4>{{ item.title }}
@@ -11,32 +24,32 @@
         <ul class="metrics-list">
           <li>
             <span class="metric-label">累计收益率</span>
-            <span class="metric-value" :class="getValueClass(item.Cumulative_Return)">
-              {{ formatPercent(item.Cumulative_Return) }}
+            <span class="metric-value" :class="getValueClass(item.cumulative_Return)">
+              {{ formatPercent(item.cumulative_Return) }}
             </span>
           </li>
           <li>
             <span class="metric-label">年化收益率</span>
-            <span class="metric-value" :class="getValueClass(item.Annualized_Return)">
-              {{ formatPercent(item.Annualized_Return) }}
+            <span class="metric-value" :class="getValueClass(item.annualized_Return)">
+              {{ formatPercent(item.annualized_Return) }}
             </span>
           </li>
           <li>
             <span class="metric-label">夏普比</span>
-            <span class="metric-value" :class="getValueClass(item.Sharpe_Ratio)">
-              {{ item.Sharpe_Ratio.toFixed(2) }}
+            <span class="metric-value" :class="getValueClass(item.sharpe_Ratio)">
+              {{ item.sharpe_Ratio.toFixed(2) }}
             </span>
           </li>
           <li>
             <span class="metric-label">最大回撤</span>
             <span class="metric-value drawdown">
-              {{ formatPercent(item.Maximum_Drawdown) }}
+              {{ formatPercent(item.maximum_Drawdown) }}
             </span>
           </li>
           <li>
             <span class="metric-label">卡玛比率</span>
-            <span class="metric-value" :class="getValueClass(item.Calmar_Ratio)">
-              {{ item.Calmar_Ratio.toFixed(2) }}
+            <span class="metric-value" :class="getValueClass(item.calmar_Ratio)">
+              {{ item.calmar_Ratio.toFixed(2) }}
             </span>
           </li>
         </ul>
@@ -52,11 +65,11 @@ import axios from "axios";
 // 定义收益数据类型
 interface YieldDataItem {
   period: string;
-  Cumulative_Return: number;
-  Annualized_Return: number;
-  Sharpe_Ratio: number;
-  Maximum_Drawdown: number;
-  Calmar_Ratio: number;
+  cumulative_Return: number;
+  annualized_Return: number;
+  sharpe_Ratio: number;
+  maximum_Drawdown: number;
+  calmar_Ratio: number;
 }
 
 interface YieldJson {
@@ -164,6 +177,41 @@ function getValueClass(value: number): string {
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  min-height: 300px;
+}
+
+.no-data-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  width: 100%;
+}
+
+.custom-empty-icon {
+  font-size: 60px;
+  color: #f59e0b;
+  background: #fffbeb;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.no-data-text {
+  font-size: 16px;
+  color: #374151;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.no-data-hint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .kline-box {
@@ -192,7 +240,7 @@ function getValueClass(value: number): string {
   content: '';
   width: 4px;
   height: 16px;
-  background: #3b82f6;
+  background: #f59e0b;
   margin-right: 8px;
   border-radius: 2px;
 }
@@ -200,8 +248,8 @@ function getValueClass(value: number): string {
 .strategy-tag {
   font-size: 12px;
   padding: 4px 8px;
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: #fff7ed;
+  color: #ea580c;
   border-radius: 4px;
   font-weight: 500;
 }
@@ -257,16 +305,6 @@ function getValueClass(value: number): string {
 
 .model-card {
   border-left: 4px solid #6366f1;
-}
-
-.no-data {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  background: #f8fafc;
-  border-radius: 8px;
-  color: #64748b;
 }
 
 /* 响应式调整 */

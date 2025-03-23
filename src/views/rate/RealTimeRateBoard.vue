@@ -138,7 +138,8 @@ interface TrendDataItem {
 
 // ================== 响应式数据 ================== //
 const baseCurrency = ref("CNY");   
-const searchQuery = ref("");
+// 移除未使用的变量或添加使用它的代码
+// const searchQuery = ref("");
 
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled } from "@element-plus/icons-vue"   //图标
+import { Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled } from "@element-plus/icons-vue"   //图标
 </script>
 
 
@@ -12,8 +12,10 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled
       >
         <el-menu-item index="/homepage">
           <template #title>
-            <el-icon><HomeFilled /></el-icon>
-            <span>首页</span>
+            <div class="logo-container">
+              <img src="/logo.jpg" alt="ForexSeek Logo" class="logo-image"/>
+              <span>首页</span>
+            </div>
           </template>
         </el-menu-item>
 
@@ -54,5 +56,21 @@ import { HomeFilled, Histogram, Opportunity, TrendCharts, InfoFilled, UserFilled
 
 .el-menu--horizontal > .el-menu-item:nth-child(1) {
   margin-right: auto;
+}
+
+/* Logo 样式 */
+.logo-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.logo-image {
+  width: 20px;
+  height: 20px;
+  /* 移除圆形边框 */
+  border-radius: 0;
+  object-fit: contain;
+  margin-right: 8px;
 }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { router } from '../../router'
-import { UserFilled, Message, Lock, SwitchButton } from "@element-plus/icons-vue";
+import { Message, Lock, SwitchButton } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { changePassword, User, userLogout } from '../../api/user';
 
@@ -120,6 +120,7 @@ const handleLogout = () => {
   ).then(() => {
     // 获取保存的 token
     const token = sessionStorage.getItem('satoken');
+    
     // 设置请求头，包含 satoken
     const config = {
       headers: {
@@ -127,34 +128,26 @@ const handleLogout = () => {
       }
     };
     
-    userLogout(config).then(res => {
-      // 无论后端返回什么，都清除本地存储并跳转到登录页
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      
+    userLogout(config).then(() => {
       ElMessage({
-        message: '已成功退出登录',
+        message: '退出登录成功',
         type: 'success',
         center: true,
       });
+      
+      // 清除用户信息
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('satoken');
       
       // 跳转到登录页并刷新页面
       window.location.href = '/login';
     }).catch(error => {
       console.error('退出登录请求失败:', error);
-      
-      // 即使请求失败，也清除本地存储并跳转到登录页
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      
       ElMessage({
-        message: '已退出登录',
-        type: 'success',
+        message: '退出登录失败，请稍后重试',
+        type: 'error',
         center: true,
       });
-      
-      // 跳转到登录页并刷新页面
-      window.location.href = '/login';
     });
   }).catch(() => {
     // 用户取消退出

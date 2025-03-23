@@ -45,7 +45,7 @@ watch(currencyPair, () => {
 const predictionPeriod = ref("1周");
 
 //可供选择的预测周期
-const predictionPeriodList = ["1周", "2周", "1月"];
+const predictionPeriodList = ["1周", "2周"];
 
 // 根据时间范围返回对应数据点数量
 const getCountFromTimeRange = (timeRange: string) => {
@@ -133,7 +133,12 @@ const getColorScheme = () => {
   const pair = `${currencyPair.from}${currencyPair.to}`;
   
   // 为不同货币对定义不同的颜色方案
-  const colorSchemes = {
+  const colorSchemes: Record<string, {
+    primary: string;
+    secondary: string;
+    areaStart: string;
+    areaEnd: string;
+  }> = {
     // 人民币美元：蓝色系
     'CNYUSD': {
       primary: '#1a237e',
@@ -394,9 +399,8 @@ const generateReport = async () => {
   const explanationRequest: ExplanationRequest = {
     currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
     timeSpan: getCountFromTimeRange(predictionPeriod.value),
-    data: predictionList.value.map(item => ({
-      ...item,
-      // 确保报告中的数据也格式化为最多4位小数
+    data: predictionList.value.map((item: any) => ({
+      date: item.date,
       pred: typeof item.pred === 'number' ? formatNumber(item.pred) : item.pred
     })),
   };

@@ -4,8 +4,10 @@ import * as echarts from 'echarts/core';
 import { GraphChart, HeatmapChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import { TitleComponent, TooltipComponent, VisualMapComponent, LegendComponent } from 'echarts/components';
-import { getCurrencyFlag, parseModel } from "../../utils/index";
+import { parseModel } from "../../utils/index";
 import { getInterpretData, GraphRequest, Link, Node2 } from "../../api/interpret";
+import { ElMessage } from 'element-plus';
+import { DataAnalysis } from '@element-plus/icons-vue'; // 导入图标
 
 // 注册必要组件
 echarts.use([
@@ -23,26 +25,6 @@ const currencyPair = reactive({
   from: 'CNY',
   to: 'USD'
 })
-
-// 可供选择的货币对
-const currencyList = [
-  { from: 'CNY', to: 'USD' },
-  { from: 'CNY', to: 'EUR' },
-  { from: 'CNY', to: 'JPY' },
-  { from: 'CNY', to: 'AUD' },
-]
-
-// 选择货币对的回调函数
-const selectedCurrency = ref(`${currencyPair.from}/${currencyPair.to}`);
-const selectCurrency = (value: string) => {
-  const [from, to] = value.split('/');
-  currencyPair.from = from;
-  currencyPair.to = to;
-  console.log('选中的货币对：', currencyPair);
-}
-watch(currencyPair, () => {
-  selectedCurrency.value = `${currencyPair.from}/${currencyPair.to}`;
-});
 
 //当前模型
 const model = ref('模型1')
@@ -107,10 +89,10 @@ const updateChart = () => {
         }
         
         nodes.push({
-          id: nodeList[i].id-1,
+          id: Number(nodeList[i].id) - 1,
           name: nodeList[i].name,
           value: nodeList[i].desc,
-          meaning: nodeList[i].meaning || '暂无解释',
+          meaning: (nodeList[i] as any).meaning || '暂无解释',
           // 根据节点id分配不同类别，实现多样化颜色
           category: category,
           symbolSize: 25,
@@ -131,8 +113,8 @@ const updateChart = () => {
         // 计算线宽，确保即使权重很小也有基本可见度
         const lineWidth = Math.max(1, linkList[i].weight * 3);
         links.push({
-          source: linkList[i].source-1,
-          target: linkList[i].target-1,
+          source: Number(linkList[i].source) - 1,
+          target: Number(linkList[i].target) - 1,
           value: linkList[i].weight,
           lineStyle: {
             width: lineWidth,
@@ -163,7 +145,7 @@ const updateChart = () => {
         legend: {
           show: true,
           data: Array.from(categoryMap.entries()).map(
-            ([category, name]) => ({ name: String(name) })
+            ([_, name]) => ({ name: String(name) })
           )
         },
         series: [
@@ -180,7 +162,7 @@ const updateChart = () => {
             data: nodes,
             links: links,
             categories: Array.from(categoryMap.entries()).map(
-              ([category, name]) => ({ name: String(name) })
+              ([_, name]) => ({ name: String(name) })
             ),
             emphasis: {
               focus: "adjacency",
@@ -241,74 +223,183 @@ onMounted(() => {
 </script>
 
 <template>
-  <el-main>
-    <el-container class="interpret-board">
-      <el-header class="interpret-header">
-        <el-row :gutter="20" justify="space-between">
-          <el-col :span="4">
-            <el-text style="font-size: 25px;font-weight: bold;color: black;">可解释性分析</el-text>
-          </el-col>
+  <div class="interpret-page">
+    <header class="interpret-header">
+      <div class="header-content">
+        <div class="page-title">
+          <h2>可解释性分析</h2>
+        </div>
+        
+        <div class="model-selector">
+          <!-- 美化后的模型选择器 -->
+          <div class="selector-wrapper">
+            <span class="selector-label">预测模型</span>
+            <el-select 
+              v-model="model" 
+              placeholder="请选择预测模型"
+              class="custom-select"
+              popper-class="model-select-dropdown"
+            >
+              <el-option 
+                v-for="item in modelList" 
+                :key="item" 
+                :label="item" 
+                :value="item" 
+                class="model-option"
+              >
+                <div class="model-option-content">
+                  <span class="model-icon">
+                    <el-icon><DataAnalysis /></el-icon>
+                  </span>
+                  <span>{{ item }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </div>
+        </div>
+      </div>
+    </header>
 
-
-          <el-col :span="8"></el-col>
-
-          <el-col :span="4">
-            <el-form-item label="预测模型" class="form-item">
-              <el-select v-model="model" placeholder="请选择预测模型">
-                <el-option v-for="item in modelList" :key="item" :label="item" :value="item" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-header>
-
-      <el-main>
-        <div id="echart" ref="chartRef" class="force-chart"></div>
-      </el-main>
-    </el-container>
-  </el-main>
+    <main class="interpret-content">
+      <div id="echart" ref="chartRef" class="force-chart"></div>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.interpret-board {
-  background: #00aaff89;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  width: 90%;
+.interpret-page {
+  width: 100%;
   height: 100%;
-  margin: 0 auto;
   display: flex;
+  flex-direction: column;
+  background: #fff;
 }
 
 .interpret-header {
-  height: 7%;
-  padding: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eaeaea;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+  position: relative;
+  padding-left: 12px;
+}
+
+.page-title h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+/* 美化选择器样式 */
+.model-selector {
+  display: flex;
+  align-items: center;
+}
+
+.selector-wrapper {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.selector-label {
+  font-weight: 500;
+  color: #333;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+/* 自定义下拉选择器样式 */
+.custom-select {
+  width: 160px;
+}
+
+:deep(.el-input__wrapper) {
+  background-color: transparent;
+  box-shadow: none !important;
+  padding-left: 0;
+}
+
+:deep(.el-input__inner) {
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* 下拉选项样式 */
+.model-option-content {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.model-icon {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #e6f0ff;
+  border-radius: 4px;
+  margin-right: 8px;
+  color: #3b82f6;
 }
 
-.currency-flag {
-  width: 1.5em;
-  height: 1.5em;
-  margin: 0 auto;
-}
-
-.separator {
-  color: #6b7280;
-  font-weight: bold;
-}
-
-:deep(.form-item .el-form-item__label) {
-  color: rgb(0, 0, 0);
-  font-weight: bold;
+.interpret-content {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
 }
 
 .force-chart {
   width: 100%;
   height: 700px;
   margin: 0 auto;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+/* 添加响应式样式 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .selector-wrapper {
+    width: 100%;
+  }
+  
+  .custom-select {
+    width: 100%;
+  }
 }
 </style>

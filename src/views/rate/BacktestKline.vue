@@ -4,8 +4,21 @@
         当 loadedData 中有N个文件，就渲染N个图表容器
         如果没数据则显示"暂无数据"
       -->
-      <div v-if="loadedData.length === 0">
-        <p>暂无数据</p>
+      <div v-if="loadedData.length === 0" class="no-data-container">
+        <el-empty 
+          description="暂无K线数据" 
+          :image-size="120"
+        >
+          <template #image>
+            <div class="custom-empty-icon">
+              <i class="el-icon-data-empty"></i>
+            </div>
+          </template>
+          <template #description>
+            <p class="no-data-text">暂无K线数据</p>
+            <p class="no-data-hint">请尝试选择其他货币对或策略</p>
+          </template>
+        </el-empty>
       </div>
       <div
         v-for="(item, index) in loadedData"
@@ -129,13 +142,13 @@
       const candlestickData: number[][] = [];
       const dateArr: string[] = [];
       aggregated.forEach((item: any) => {
-        if (!item.true) return;  // 添加数据有效性检查
+        if (!item.trueData) return;  // 添加数据有效性检查
         
-        const date = item.date;
-        const open = parseFloat(item.true.open);
-        const close = parseFloat(item.true.close);
-        const low = parseFloat(item.true.low);
-        const high = parseFloat(item.true.high);
+        const date = item.date.substring(0, 10);
+        const open = parseFloat(item.trueData.open);
+        const close = parseFloat(item.trueData.close);
+        const low = parseFloat(item.trueData.low);
+        const high = parseFloat(item.trueData.high);
         
         if (!isNaN(open) && !isNaN(close) && !isNaN(low) && !isNaN(high)) {
           candlestickData.push([open, close, low, high]);
@@ -352,13 +365,52 @@
     border-radius: 12px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    min-height: 300px; /* 确保即使没有数据也有一定高度 */
   }
+  
+  /* 暂无数据样式 */
+  .no-data-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+    width: 100%;
+  }
+  
+  .custom-empty-icon {
+    font-size: 60px;
+    color: #e5e7eb;
+    background: #f9fafb;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  
+  .no-data-text {
+    font-size: 16px;
+    color: #374151;
+    font-weight: 500;
+    margin: 0 0 8px;
+  }
+  
+  .no-data-hint {
+    font-size: 14px;
+    color: #9ca3af;
+    margin: 0;
+  }
+  
   .kline-box {
     margin-bottom: 20px;
   }
+  
   .kline-box:last-child {
     margin-bottom: 0;  /* 最后一个图表不需要底部边距 */
   }
+  
   .kline-box h4 {
     font-size: 15px;
     font-weight: 600;
@@ -371,6 +423,7 @@
     display: flex;
     align-items: center;
   }
+  
   .kline-box h4::before {
     content: '';
     width: 4px;
@@ -379,6 +432,7 @@
     margin-right: 8px;
     border-radius: 2px;
   }
+  
   .kline-canvas {
     width: 100%;
     height: 460px;  /* 增加图表高度 */
