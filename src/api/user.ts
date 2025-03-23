@@ -18,10 +18,14 @@ export const userLogin = (formData: FormData, config?: any) => {
 
 // 用户注册
 export const userRegister = (formData: FormData) => {
-    return axios.post(`${USER_MODULE}/register`, formData)
-        .then(res => {
-            return res
-        })
+    return axios.post(`${USER_MODULE}/register`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+    .then(res => {
+        return res
+    })
 }
 
 //修改用户密码
