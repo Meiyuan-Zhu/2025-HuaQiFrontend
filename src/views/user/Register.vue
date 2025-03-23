@@ -29,7 +29,6 @@ function handleRegister() {
   const formData = new FormData();
   formData.append('username', name.value);
   formData.append('password', password.value);
-
   userRegister(formData).then(res => {
     if (res.data.code === 0) {  // 修改判断条件为 code === 0
       ElMessage({
