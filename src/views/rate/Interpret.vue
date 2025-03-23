@@ -4,8 +4,10 @@ import * as echarts from 'echarts/core';
 import { GraphChart, HeatmapChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import { TitleComponent, TooltipComponent, VisualMapComponent, LegendComponent } from 'echarts/components';
-import { getCurrencyFlag, parseModel } from "../../utils/index";
+import { parseModel } from "../../utils/index";
 import { getInterpretData, GraphRequest, Link, Node2 } from "../../api/interpret";
+import { ElMessage } from 'element-plus';
+import { DataAnalysis } from '@element-plus/icons-vue'; // 导入图标
 
 // 注册必要组件
 echarts.use([
@@ -24,31 +26,11 @@ const currencyPair = reactive({
   to: 'USD'
 })
 
-// 可供选择的货币对
-const currencyList = [
-  { from: 'CNY', to: 'USD' },
-  { from: 'CNY', to: 'EUR' },
-  { from: 'CNY', to: 'JPY' },
-  { from: 'CNY', to: 'AUD' },
-]
-
-// 选择货币对的回调函数
-const selectedCurrency = ref(`${currencyPair.from}/${currencyPair.to}`);
-const selectCurrency = (value: string) => {
-  const [from, to] = value.split('/');
-  currencyPair.from = from;
-  currencyPair.to = to;
-  console.log('选中的货币对：', currencyPair);
-}
-watch(currencyPair, () => {
-  selectedCurrency.value = `${currencyPair.from}/${currencyPair.to}`;
-});
-
 //当前模型
 const model = ref('模型1')
 
 //可供选择的模型
-const modelList = ['模型1', '模型2', '模型3', '模型4',]
+const modelList = ['模型1', '模型2', '模型3']
 
 onMounted(() => {
   updateChart();
@@ -89,22 +71,56 @@ const updateChart = () => {
       const nodeList: Node2[] = data.nodes;
       const linkList: Link[] = data.links;
 
+      // 定义节点类别对应的颜色
+      const categoryColors = [
+        '#5470c6', '#91cc75', '#fac858', '#ee6666', 
+        '#73c0de', '#3ba272', '#fc8452', '#9a60b4'
+      ];
+      
+      // 创建类别映射，用于存储每个类别的名称
+      const categoryMap = new Map();
+
       //接收nodes
       for(let i = 0; i < nodeList.length; i++){
+        const category = i % categoryColors.length;
+        // 如果该类别还没有名称，则使用第一个该类别节点的名称作为类别名
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, nodeList[i].name);
+        }
+        
         nodes.push({
-          id: nodeList[i].id,
+          id: Number(nodeList[i].id) - 1,
           name: nodeList[i].name,
           value: nodeList[i].desc,
-          symbolSize: 15,
+          meaning: (nodeList[i] as any).meaning || '暂无解释',
+          // 根据节点id分配不同类别，实现多样化颜色
+          category: category,
+          symbolSize: 25,
+          itemStyle: {
+            // 根据节点类别设置不同颜色
+            color: categoryColors[category]
+          },
+          label: {
+            show: true,
+            position: 'right',
+            formatter: '{b}',
+            fontSize: 12
+          }
         })
       }
       //接收links
       for(let i = 0; i < linkList.length; i++){
+        // 计算线宽，确保即使权重很小也有基本可见度
+        const lineWidth = Math.max(1, linkList[i].weight * 3);
         links.push({
-          source: linkList[i].source,
-          target: linkList[i].target,
+          source: Number(linkList[i].source) - 1,
+          target: Number(linkList[i].target) - 1,
+          value: linkList[i].weight,
           lineStyle: {
-            width: linkList[i].weight,
+            width: lineWidth,
+            // 根据权重设置不同的透明度
+            opacity: 0.5 + (linkList[i].weight / 10),
+            curveness: 0.1
           }
         })
       }
@@ -112,54 +128,77 @@ const updateChart = () => {
       console.log(nodes, links);
   
       const option = {
-        tooltip: {},
+        tooltip: {
+          trigger: 'item',
+          formatter: function(params: any) {
+            if (params.dataType === 'node') {
+              return `
+                <div style="font-weight:bold;margin-bottom:5px">${params.data.name}</div>
+                <div>名称: ${params.data.value || '暂无描述'}</div>
+                <div>含义: ${params.data.meaning || '暂无解释'}</div>
+              `;
+            } else {
+              return `权重: ${params.data.value}`;
+            }
+          }
+        },
+        legend: {
+          show: true,
+          data: Array.from(categoryMap.entries()).map(
+            ([_, name]) => ({ name: String(name) })
+          )
+        },
         series: [
           { 
             type: "graph",
             layout: "force",
             force: {
-              repulsion: 300, // 节点斥力
-              gravity: 0.2,
-              edgeLength: [50, 250],
-              layoutAnimation: true
+              repulsion: 500, // 增加节点斥力
+              gravity: 0.5,
+              edgeLength: [80, 200],
+              layoutAnimation: true,
+              friction: 0.6 // 添加摩擦力使布局更稳定
             },
             data: nodes,
             links: links,
+            categories: Array.from(categoryMap.entries()).map(
+              ([_, name]) => ({ name: String(name) })
+            ),
             emphasis: {
               focus: "adjacency",
+              lineStyle: {
+                width: 5
+              },
               label: {
                 show: true,
                 position: "right",
+                fontSize: 14,
+                fontWeight: 'bold'
               },
             },
             roam: true,
+            draggable: true,
             label: {
+              show: true,
+              position: "right",
               formatter: "{b}",
               fontSize: 12,
+              color: '#333'
             },
             lineStyle: {
-              color: "black",
+              color: 'source',
+              curveness: 0.1
             },
+            edgeSymbol: ['none', 'arrow'],
             edgeLabel: {
               show: false,
-              formatter: (params: { dataIndex: any; }) => `Link ${params.dataIndex}`,
+              formatter: (params: any) => `${params.data.value}`,
             },
+            animation: true,
+            animationDuration: 1500,
+            animationEasingUpdate: 'quinticInOut'
           }
-        ],
-        visualMap: [
-          {
-            type: "piecewise",
-            show: false,
-            dimension: 2,
-            seriesIndex: 1,
-            pieces: [
-              { min: 0, max: 25, color: "#65B581" },
-              { min: 25, max: 50, color: "#FFE58F" },
-              { min: 50, max: 75, color: "#FFA940" },
-              { min: 75, max: 100, color: "#FF6C76" },
-            ],
-          },
-        ],
+        ]
       };
 
       chartInstance.setOption(option);
@@ -184,96 +223,183 @@ onMounted(() => {
 </script>
 
 <template>
-  <el-main>
-    <el-container class="interpret-board">
-      <el-header class="interpret-header">
-        <el-row :gutter="20" justify="space-between">
-          <el-col :span="4">
-            <el-text style="font-size: 25px;font-weight: bold;color: black;">汇率预测</el-text>
-          </el-col>
-
-          <el-col :span="2" style="display: flex;font-size: 20px;">
-            <span :class="`fi fi-${getCurrencyFlag(currencyPair.from)}`" class="currency-flag"></span>
-            <span class="separator">/</span>
-            <span :class="`fi fi-${getCurrencyFlag(currencyPair.to)}`" class="currency-flag"></span>
-          </el-col>
-
-          <el-col :span="4">
-            <el-select v-model="selectedCurrency" placeholder="选择货币对" @change="selectCurrency">
-              <el-option
-                v-for="(item, index) in currencyList"
-                :key="index"
-                :label="`${item.from}/${item.to}`"
-                :value="`${item.from}/${item.to}`">
-                <template #default="">
-                  <span :class="`fi fi-${getCurrencyFlag(item.from)}`" class="currency-flag"></span>
-                  <span class="separator">/</span>
-                  <span :class="`fi fi-${getCurrencyFlag(item.to)}`" class="currency-flag"></span>
-                  <span style="padding: 2px;"></span>
-                  <span>{{ item.from }}</span>
-                  <span class="separator">/</span>
-                  <span>{{ item.to }}</span>
-                </template>
+  <div class="interpret-page">
+    <header class="interpret-header">
+      <div class="header-content">
+        <div class="page-title">
+          <h2>可解释性分析</h2>
+        </div>
+        
+        <div class="model-selector">
+          <!-- 美化后的模型选择器 -->
+          <div class="selector-wrapper">
+            <span class="selector-label">预测模型</span>
+            <el-select 
+              v-model="model" 
+              placeholder="请选择预测模型"
+              class="custom-select"
+              popper-class="model-select-dropdown"
+            >
+              <el-option 
+                v-for="item in modelList" 
+                :key="item" 
+                :label="item" 
+                :value="item" 
+                class="model-option"
+              >
+                <div class="model-option-content">
+                  <span class="model-icon">
+                    <el-icon><DataAnalysis /></el-icon>
+                  </span>
+                  <span>{{ item }}</span>
+                </div>
               </el-option>
             </el-select>
-          </el-col>
+          </div>
+        </div>
+      </div>
+    </header>
 
-          <el-col :span="8"></el-col>
-
-          <el-col :span="4">
-            <el-form-item label="预测模型" class="form-item">
-              <el-select v-model="model" placeholder="请选择预测模型">
-                <el-option v-for="item in modelList" :key="item" :label="item" :value="item" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-header>
-
-      <el-main>
-        <div id="echart" ref="chartRef" class="force-chart"></div>
-      </el-main>
-    </el-container>
-  </el-main>
+    <main class="interpret-content">
+      <div id="echart" ref="chartRef" class="force-chart"></div>
+    </main>
+  </div>
 </template>
 
 <style scoped>
-.interpret-board {
-  background: #00aaff89;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  width: 90%;
+.interpret-page {
+  width: 100%;
   height: 100%;
-  margin: 0 auto;
   display: flex;
+  flex-direction: column;
+  background: #fff;
 }
 
 .interpret-header {
-  height: 7%;
-  padding: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eaeaea;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+  position: relative;
+  padding-left: 12px;
+}
+
+.page-title h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+/* 美化选择器样式 */
+.model-selector {
+  display: flex;
+  align-items: center;
+}
+
+.selector-wrapper {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.selector-label {
+  font-weight: 500;
+  color: #333;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+/* 自定义下拉选择器样式 */
+.custom-select {
+  width: 160px;
+}
+
+:deep(.el-input__wrapper) {
+  background-color: transparent;
+  box-shadow: none !important;
+  padding-left: 0;
+}
+
+:deep(.el-input__inner) {
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* 下拉选项样式 */
+.model-option-content {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.model-icon {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #e6f0ff;
+  border-radius: 4px;
+  margin-right: 8px;
+  color: #3b82f6;
 }
 
-.currency-flag {
-  width: 1.5em;
-  height: 1.5em;
-  margin: 0 auto;
-}
-
-.separator {
-  color: #6b7280;
-  font-weight: bold;
-}
-
-:deep(.form-item .el-form-item__label) {
-  color: rgb(0, 0, 0);
-  font-weight: bold;
+.interpret-content {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
 }
 
 .force-chart {
-  width: 90%;
+  width: 100%;
   height: 700px;
   margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+/* 添加响应式样式 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .selector-wrapper {
+    width: 100%;
+  }
+  
+  .custom-select {
+    width: 100%;
+  }
 }
 </style>

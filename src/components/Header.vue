@@ -34,7 +34,8 @@ const searchText = ref('')
 
       <el-col :span="3" class="header-icon">
         <router-link to="/dashboard" v-slot="{navigate}" class="no-link">
-          <h1 @click="navigate" class="header-text"> 花旗杯网页</h1>
+          <h1 @click="navigate" class="header-text">Forexseek</h1>
+          <span class="header-subtitle">智能外汇平台</span>
         </router-link>
       </el-col>
 
@@ -85,11 +86,19 @@ const searchText = ref('')
 }
 
 .header-text {
-  color:rgb(37, 37, 37);
+  color: rgb(37, 37, 37);
   font-size: x-large;
   min-width: max-content;
-  margin-top: 15px;
-  margin-bottom: 15px;
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+.header-subtitle {
+  color: #666;
+  font-size: 14px;
+  display: block;
+  text-align: center;
+  margin-bottom: 5px;
 }
 
 .header-icon {
@@ -97,5 +106,23 @@ const searchText = ref('')
   flex-direction: column;
   align-items:center;
   justify-content: center;
+}
+
+.site-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3b82f6;
+  margin: 0;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  height: 32px;
+  width: auto;
 }
 </style>

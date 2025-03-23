@@ -1,7 +1,13 @@
 import axios from 'axios'
 
 //创建一个axios的实例service
-const service = axios.create()
+const service = axios.create({
+    baseURL: 'http://118.178.184.189:6020',
+    timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+})
 
 //判断是否登录
 function hasToken() {
@@ -11,8 +17,10 @@ function hasToken() {
 //当前实例的拦截器，对所有要发送给后端的请求进行处理，在其中加入token
 service.interceptors.request.use(
     config => {
-        if(hasToken()) {
-            config.headers['token'] = sessionStorage.getItem('token')
+        if (!config.url?.includes('/rate/get_all_forex')) {
+            if (hasToken()) {
+                config.headers['token'] = sessionStorage.getItem('token')
+            }
         }
         return config
     },
@@ -33,6 +41,9 @@ service.interceptors.response.use(
     },
     error => {
         console.log(error);
+        if (error.response && error.response.status === 401) {
+            console.log('未授权，请重新登录');
+        }
         return Promise.reject();
     }
 )

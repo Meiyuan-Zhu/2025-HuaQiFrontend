@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as echarts from "echarts";
-import { ref, reactive, watch, onMounted, nextTick } from "vue";
+import { ref, reactive, watch, onMounted, nextTick, onUnmounted } from "vue";
 import { getCurrencyFlag, parseCurrency, parseCurrencyFullName } from "../../utils/index";
 import { Download } from "@element-plus/icons-vue"; //图标
 import * as jspdf from "jspdf";
@@ -45,7 +45,7 @@ watch(currencyPair, () => {
 const predictionPeriod = ref("1周");
 
 //可供选择的预测周期
-const predictionPeriodList = ["1周", "2周", "1月"];
+const predictionPeriodList = ["1周", "2周"];
 
 // 根据时间范围返回对应数据点数量
 const getCountFromTimeRange = (timeRange: string) => {
@@ -61,11 +61,61 @@ const getCountFromTimeRange = (timeRange: string) => {
   }
 };
 
-//当前策略
-const strategy = ref("策略1");
+// 格式化日期，截取T之前的部分
+const formatDate = (dateString: string) => {
+  if (dateString.includes('T')) {
+    return dateString.split('T')[0];
+  }
+  return dateString;
+};
 
-//可供选择的策略
-const strategyList = ["策略1", "策略2", "策略3"];
+// 检查是否为日元相关货币对
+const isJPYPair = () => {
+  return currencyPair.from === "JPY" || currencyPair.to === "JPY";
+};
+
+// 格式化数值，根据货币对类型决定小数位数
+const formatNumber = (value: number) => {
+  // 日元相关货币对保留更多小数位
+  if (isJPYPair()) {
+    return Number(value.toFixed(5));
+  }
+  // 其他货币对最多保留4位小数
+  return Number(value.toFixed(4));
+};
+
+// 计算合适的Y轴范围，使趋势更明显
+const calculateYAxisRange = (values: number[]) => {
+  if (!values || values.length === 0) return [0, 10];
+  
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  
+  // 日元相关货币对使用特殊处理
+  if (isJPYPair()) {
+    // 计算数据的相对变化幅度
+    const relativeChange = (max - min) / min;
+    
+    // 如果相对变化幅度小于5%，扩大显示范围使趋势更明显
+    if (relativeChange < 0.05) {
+      // 对于小数值货币，使用更精确的范围计算
+      const padding = min * 0.02; // 使用相对值的2%作为边距
+      return [min - padding, max + padding];
+    }
+  } else {
+    // 其他货币对使用原来的逻辑
+    // 如果最大值和最小值相差太小，扩大范围使趋势更明显
+    if (max - min < 0.01) {
+      const mid = (max + min) / 2;
+      return [mid * 0.99, mid * 1.01];
+    }
+  }
+  
+  // 对于变化较大的数据，使用常规边距
+  const range = max - min;
+  const padding = range * 0.1; // 10% 的边距
+  return [min - padding, max + padding];
+};
 
 // ECharts K线图
 const chartRef = ref<HTMLElement | null>(null);
@@ -76,18 +126,59 @@ const initChart = () => {
     updateChart();
   }
 };
+
+// 根据货币对获取颜色方案
+const getColorScheme = () => {
+  // 获取当前货币对组合
+  const pair = `${currencyPair.from}${currencyPair.to}`;
+  
+  // 为不同货币对定义不同的颜色方案
+  const colorSchemes: Record<string, {
+    primary: string;
+    secondary: string;
+    areaStart: string;
+    areaEnd: string;
+  }> = {
+    // 人民币美元：蓝色系
+    'CNYUSD': {
+      primary: '#1a237e',
+      secondary: '#3949ab',
+      areaStart: 'rgba(58, 71, 212, 0.3)',
+      areaEnd: 'rgba(58, 71, 212, 0.1)'
+    },
+    // 人民币欧元：绿色系
+    'CNYEUR': {
+      primary: '#00695c',
+      secondary: '#00897b',
+      areaStart: 'rgba(0, 137, 123, 0.3)',
+      areaEnd: 'rgba(0, 137, 123, 0.1)'
+    },
+    // 人民币日元：粉红色系
+    'CNYJPY': {
+      primary: '#e91e63',
+      secondary: '#ec407a',
+      areaStart: 'rgba(233, 30, 99, 0.3)',
+      areaEnd: 'rgba(233, 30, 99, 0.1)'
+    },
+    // 人民币澳元：橙色系
+    'CNYAUD': {
+      primary: '#e65100',
+      secondary: '#f57c00',
+      areaStart: 'rgba(245, 124, 0, 0.3)',
+      areaEnd: 'rgba(245, 124, 0, 0.1)'
+    }
+  };
+  
+  // 返回对应的颜色方案，如果没有找到则使用默认蓝色系
+  return colorSchemes[pair] || colorSchemes['CNYUSD'];
+};
+
 const updateChart = () => {
   if (!chartInstance) return;
 
   const count = getCountFromTimeRange(predictionPeriod.value);
   const dates: any[] = [];
   const dataPred: any[] = [];
-  // const now = new Date();
-  // for (let i = 0; i < count; i++) {
-  //   const date = new Date(now.getTime() - (count - i - 1) * 24 * 3600 * 1000);
-  //   dates.push(`${date.getMonth()+1}-${date.getDate()}`);
-  //   dataPred.push((Math.random() * 10 + 90).toFixed(2));
-  // }
 
   //获取后端预测数据
   const predictRequest: PredictRequest = {
@@ -102,21 +193,139 @@ const updateChart = () => {
       predictionList.value = dataList;
       //接收date作为x轴,接收pred作为y轴
       for (let i = 0; i < dataList.length; i++) {
-        dates.push(dataList[i].date);
-        dataPred.push(dataList[i].pred);
+        // 格式化日期，截取T之前的部分
+        dates.push(formatDate(dataList[i].date));
+        // 格式化数值，根据货币对类型决定小数位数
+        dataPred.push(formatNumber(dataList[i].pred));
       }
-      //console.log(dates, dataPred);
+      
+      // 计算合适的Y轴范围
+      const yAxisRange = calculateYAxisRange(dataPred);
+      
+      // 是否为日元相关货币对
+      const jpyPair = isJPYPair();
+      
+      // 获取当前货币对的颜色方案
+      const colors = getColorScheme();
+      
+      // 设置图表配置
       const option = {
-        tooltip: { trigger: "axis" },
-        legend: { data: ["预测汇率"] },
-        xAxis: { type: "category", data: dates },
-        yAxis: { type: "value" },
+        tooltip: { 
+          trigger: "axis",
+          formatter: function(params: any) {
+            const date = params[0].axisValue;
+            const value = params[0].data;
+            // 日元相关货币对显示更多位数
+            const formattedValue = jpyPair ? value.toFixed(5) : value;
+            return `${date}<br/>${params[0].seriesName}: ${formattedValue}`;
+          }
+        },
+        legend: { 
+          data: ["预测汇率"],
+          textStyle: {
+            fontSize: 12
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: { 
+          type: "category", 
+          data: dates,
+          axisLabel: {
+            rotate: 30,
+            fontSize: 11
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#666'
+            }
+          }
+        },
+        yAxis: { 
+          type: "value",
+          min: yAxisRange[0],
+          max: yAxisRange[1],
+          // 日元相关货币对使用更多的刻度线和特殊缩放
+          splitNumber: jpyPair ? 5 : 4,
+          scale: jpyPair,
+          axisLabel: {
+            formatter: function(value: number) {
+              // 日元相关货币对显示更多位数
+              if (jpyPair) {
+                return value.toFixed(5);
+              }
+              return formatNumber(value);
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              type: 'dashed',
+              color: '#DDD'
+            }
+          }
+        },
         series: [
           {
             name: "预测汇率",
             type: "line",
             data: dataPred,
             smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            itemStyle: {
+              // 使用当前货币对的主色调
+              color: colors.primary
+            },
+            lineStyle: {
+              width: 3,
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [{
+                  offset: 0, 
+                  // 使用当前货币对的主色调
+                  color: colors.primary
+                }, {
+                  offset: 1, 
+                  // 使用当前货币对的次色调
+                  color: colors.secondary
+                }]
+              }
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [{
+                  offset: 0,
+                  // 使用当前货币对的区域起始色
+                  color: colors.areaStart
+                }, {
+                  offset: 1,
+                  // 使用当前货币对的区域结束色
+                  color: colors.areaEnd
+                }]
+              }
+            },
+            emphasis: {
+              itemStyle: {
+                // 使用当前货币对的次色调
+                color: colors.secondary,
+                borderWidth: 3,
+                shadowColor: 'rgba(0, 0, 0, 0.3)',
+                shadowBlur: 10
+              }
+            }
           },
         ],
       };
@@ -139,6 +348,27 @@ watch([currencyPair, predictionPeriod], () => {
 });
 onMounted(() => {
   initChart();
+  
+  // 添加窗口大小变化监听，自动调整图表大小
+  window.addEventListener('resize', () => {
+    if (chartInstance) {
+      chartInstance.resize();
+    }
+  });
+});
+
+// 在组件卸载时移除事件监听
+onUnmounted(() => {
+  window.removeEventListener('resize', () => {
+    if (chartInstance) {
+      chartInstance.resize();
+    }
+  });
+  
+  // 销毁图表实例
+  if (chartInstance) {
+    chartInstance.dispose();
+  }
 });
 
 //是否展示AI报告
@@ -169,7 +399,10 @@ const generateReport = async () => {
   const explanationRequest: ExplanationRequest = {
     currency: parseCurrency(currencyPair.from) + parseCurrency(currencyPair.to),
     timeSpan: getCountFromTimeRange(predictionPeriod.value),
-    data: predictionList.value,
+    data: predictionList.value.map((item: any) => ({
+      date: item.date,
+      pred: typeof item.pred === 'number' ? formatNumber(item.pred) : item.pred
+    })),
   };
   console.log(explanationRequest);
 
@@ -286,6 +519,7 @@ const downloadReport = () => {
               v-model="selectedCurrency"
               placeholder="选择货币对"
               @change="selectCurrency"
+              style="width: 100%"
             >
               <el-option
                 v-for="(item, index) in currencyList"
@@ -301,25 +535,13 @@ const downloadReport = () => {
             </el-select>
         </div>
 
-        <!-- 策略选择卡片 -->
-        <div class="control-card">
-          <div class="card-title">交易策略</div>
-            <el-select v-model="strategy" placeholder="请选择策略">
-              <el-option
-                v-for="item in strategyList"
-                :key="item"
-                :label="item"
-                :value="item"
-              />
-            </el-select>
-        </div>
-
         <!-- 时间跨度选择卡片 -->
         <div class="control-card">
           <div class="card-title">时间跨度</div>
             <el-select
               v-model="predictionPeriod"
               placeholder="请选择预测周期"
+              style="width: 100%"
             >
               <el-option
                 v-for="item in predictionPeriodList"
@@ -337,85 +559,51 @@ const downloadReport = () => {
       <div class="analysis-section">
 
         <div class="section-header">
-          <!-- <h3>技术分析</h3> -->
           <div class="section-tools">
             <!-- 这里可以添加一些工具按钮 -->
           </div>
         </div>
 
         <div class="charts-wrapper">
-          <div class="chart-container main">
-            <div id="echart" ref="chartRef" class="kline-chart"></div>
+          <div class="chart-container main" id="echart">
+            <div ref="chartRef" style="height: 400px; width: 100%"></div>
           </div>
         </div>
+      </div>
 
-        <div v-if="showAIReport" class="charts-wrapper" id="textArea">
-          <div class="chart-container main">
-            <el-row :gutter="60">
-              <el-col :span="4">
-                <el-button @click="downloadReport" type="primary">
-                  <el-icon><Download /></el-icon> 下载报告
-                </el-button>
-              </el-col>
-              <el-col :span="18"></el-col>
-              <el-col :span="2">
-                <el-button @click="closeReport" type="primary"> 关闭 </el-button>
-              </el-col>
-            </el-row>
-            <el-input
-              class="textArea"
-              v-model="textOutput"
-              type="textarea"
-              :autosize="{ minRows: 4, maxRows: 8 }"
-              resize="none"
-              readonly
-              input-style="font-size: 16px;font-weight:bold;letter-spacing:1px; font-family: Arial, sans-serif;background-color:#00aaff10;"
-            />
+      <div v-if="showAIReport" class="report-section">
+        <div class="report-header">
+          <h3>AI 分析报告</h3>
+          <div class="report-actions">
+            <el-button
+              type="primary"
+              :icon="Download"
+              size="small"
+              @click="downloadReport"
+              >下载报告</el-button
+            >
+            <el-button type="default" size="small" @click="closeReport"
+              >关闭</el-button
+            >
           </div>
         </div>
-
+        <div class="report-content">
+          <el-input
+            id="textArea"
+            v-model="textOutput"
+            type="textarea"
+            :rows="10"
+            readonly
+            resize="none"
+            class="textArea"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-
-.sidebar {
-  width: 10%;
-  height: 100%;
-  border-right: #00000022 1px solid;
-  border-radius: 8px 0 0 8px;
-  background-color: #77a0f127;
-}
-
-.currency-menu {
-  background-color: #0d00ff00;
-}
-
-.separator {
-  color: #6b7280;
-  font-weight: bold;
-}
-
-:deep(.form-item .el-form-item__label) {
-  color: rgb(0, 0, 0);
-  font-weight: bold;
-}
-
-.kline-chart {
-  width: 90%;
-  height: 600px;
-  margin: 0 auto;
-}
-
-/* .showReportButton {
-  position: fixed;
-  right: 0%;
-  bottom: 10%;
-  z-index: 999;
-} */
-
+<style>
 .textArea {
   width: 100%;
   height: 100%;
@@ -525,29 +713,6 @@ const downloadReport = () => {
   border-radius: 12px;
 }
 
-.current-rate {
-  font-size: 42px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 1px;
-}
-
-.rate-change {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 8px;
-  font-size: 15px;
-}
-
-.change-value,
-.change-percent {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
 .control-panel {
   display: flex;
   gap: 16px;
@@ -569,26 +734,6 @@ const downloadReport = () => {
   margin-bottom: 12px;
 }
 
-.time-selector {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.time-btn {
-  padding: 6px 12px;
-  border: none;
-  background: #f5f7fa;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.time-btn.active {
-  background: #1a237e;
-  color: white;
-}
-
 .main-content {
   display: flex;
   flex-direction: column;
@@ -600,13 +745,6 @@ const downloadReport = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-}
-
-.section-header h3 {
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
-  margin: 0;
 }
 
 .charts-wrapper {
@@ -623,12 +761,37 @@ const downloadReport = () => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* .chart-container.main {
-  min-height: 400px;
-} */
-
 .chart-container.sub {
   min-height: 300px;
+}
+
+.report-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 12px;
+}
+
+.report-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+}
+
+.report-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* 响应式设计 */
@@ -656,10 +819,8 @@ const downloadReport = () => {
   .rate-info {
     width: 100%;
     text-align: center;
-  }
-
-  .rate-change {
-    justify-content: center;
+    position: relative;
+    right: auto;
   }
 
   .currency-flag {
@@ -674,11 +835,11 @@ const downloadReport = () => {
 }
 
 /* 添加一些微妙的动画效果 */
-.chart-container {
+.chart-container, .report-section {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.chart-container:hover {
+.chart-container:hover, .report-section:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -690,7 +851,8 @@ const downloadReport = () => {
   }
 
   .control-card,
-  .chart-container {
+  .chart-container,
+  .report-section {
     background: #242424;
     color: #e0e0e0;
   }
@@ -699,17 +861,9 @@ const downloadReport = () => {
     color: #999;
   }
 
-  .section-header h3 {
+  .section-header h3, 
+  .report-header h3 {
     color: #e0e0e0;
-  }
-
-  .time-btn {
-    background: #333;
-    color: #e0e0e0;
-  }
-
-  .time-btn.active {
-    background: #3949ab;
   }
 
   .page-title {
@@ -733,30 +887,5 @@ const downloadReport = () => {
 
 .flags-wrapper:hover .exchange-arrow {
   transform: translateX(5px);
-}
-
-.change-value.up,
-.change-percent.up {
-  color: #ef4444; /* 上涨显示红色 */
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.change-value.down,
-.change-percent.down {
-  color: #22c55e; /* 下跌显示绿色 */
-  background: rgba(34, 197, 94, 0.15);
-}
-
-.change-value.neutral,
-.change-percent.neutral {
-  color: #ffffff; /* 持平显示白色 */
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* 添加数据加载时的过渡效果 */
-.current-rate,
-.change-value,
-.change-percent {
-  transition: all 0.3s ease;
 }
 </style>

@@ -14,7 +14,7 @@ import backgroundImage from "../assets/background2.webp";
       <div class="hero-section">
         <div class="hero-text-container">
           <h1 class="hero-title">
-            Empowering Your Forex Decisions
+            Forexseek
           </h1>
           <h2 class="hero-subtitle">
             Harness AI and big data to analyze forex risks, predict trends, and optimize investment strategies.

@@ -96,9 +96,9 @@ async function fetchCurrentRate() {
         
         currentRate.value = {
           rate: rate,
-          change: change,
+          change: rate - rate / (1 + change),
           // 计算涨跌百分比
-          changePercent: ((change / rate) * 100)
+          changePercent: change
         };
       }
     }

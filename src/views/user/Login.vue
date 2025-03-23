@@ -19,22 +19,37 @@ const loginDisabled = computed(() => {
 
 // 登录按钮触发
 function handleLogin() {
-  //临时测试用
-  sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
-  router.push({path: "/dashboard"})
+  // 创建 FormData 对象
+  const formData = new FormData();
+  formData.append('username', username.value);
+  formData.append('password', password.value);
 
-  userLogin({
-    username: username.value,
-    password: password.value
-  }).then(res => {
-    if (res.data.code === '200') {
+  // 设置请求头为 multipart/form-data
+  const config = {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  };
+
+  userLogin(formData, config).then(res => {
+    if (res.data.code === 0) {
+      // 保存 token 到 sessionStorage
+      if (res.data.data) {
+        sessionStorage.setItem('satoken', res.data.data);
+      }
+      
       ElMessage({
-        message: "登录成功！",
+        message: "登录成功",
         type: 'success',
         center: true,
+        duration: 2000
       })
+      
+      // 保存用户信息
       sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
-      router.push({path: "/dashboard"})
+      
+      // 跳转到首页
+      router.push({path: "/"})
     }else{
       ElMessage({
         message: res.data.msg,
@@ -49,7 +64,7 @@ function handleLogin() {
 
 
 <template>
-  <el-main class="main-frame bgimage">
+  <el-main class="main-frame">
     <el-card class="login-card">
       <div>
         <h1>登入您的账户</h1>
@@ -87,19 +102,31 @@ function handleLogin() {
 .main-frame {
   width: 100%;
   height: 100%;
-
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.bgimage {
-  background-image: url("../../assets/shopping-1s-1084px.svg");
+  background-color: #f5f7fa;
+  padding-bottom: 10vh; /* 向上移动登录卡片 */
 }
 
 .login-card {
-  width: 60%;
-  padding: 10px;
+  width: 400px;
+  max-width: 90%;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-out; /* 添加淡入动画 */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .error-warn {
@@ -111,11 +138,27 @@ function handleLogin() {
 }
 
 .button-group {
-  padding-top: 10px;
+  padding-top: 20px;
   display: flex;
   flex-direction: row;
   gap: 30px;
   align-items: center;
   justify-content: right;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #303133;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
 }
 </style>

@@ -16,26 +16,33 @@ const hasConfirmPasswordInput = computed(() => confirmPassword.value != '')
 const isPasswordIdentical = computed(() => password.value == confirmPassword.value)
 // 注册按钮可用性
 const registerDisabled = computed(() => {
-  if( hasPasswordInput && hasConfirmPasswordInput && isPasswordIdentical) {
-    return true
+  if (hasPasswordInput.value && hasConfirmPasswordInput.value && isPasswordIdentical.value && name.value !== '') {
+    return false;
   } else {
-    return false
+    return true;
   }
 })
 
 // 注册按钮触发
 function handleRegister() {
-  userRegister({
-    username: name.value,
-    password: password.value,
-  }).then(res => {
-    if (res.data.code === '200') {  //类型守卫，它检查 res.data 对象中是否存在名为 code 的属性
+  // 创建 FormData 对象
+  const formData = new FormData();
+  formData.append('username', name.value);
+  formData.append('password', password.value);
+
+  userRegister(formData).then(res => {
+    if (res.data.code === 0) {  // 修改判断条件为 code === 0
       ElMessage({
-        message: "注册成功！请登录账号",
+        message: "注册成功！3秒后自动跳转到登录页面",
         type: 'success',
         center: true,
+        duration: 3000
       })
-      router.push({path: "/login"})
+      
+      // 3秒后自动跳转到登录页面
+      setTimeout(() => {
+        router.push({path: "/login"})
+      }, 3000)
     }else{
       ElMessage({
         message: res.data.msg,
@@ -50,10 +57,10 @@ function handleRegister() {
 
 
 <template>
-  <el-main class="main-frame bgimage">
+  <el-main class="main-frame">
     <el-card class="login-card">
       <div>
-        <h1>创建一个新的账户</h1>
+        <h1>创建新账户</h1>
 
         <el-form>
           <el-form-item>
@@ -108,19 +115,18 @@ function handleRegister() {
 .main-frame {
   width: 100%;
   height: 100%;
-
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.bgimage {
-  background-image: url("../../assets/shopping-1s-1084px.svg");
+  background-color: #f5f7fa;
 }
 
 .login-card {
-  width: 60%;
-  padding: 10px;
+  width: 400px;
+  max-width: 90%;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .error-warn {
@@ -132,11 +138,27 @@ function handleRegister() {
 }
 
 .button-group {
-  padding-top: 10px;
+  padding-top: 20px;
   display: flex;
   flex-direction: row;
   gap: 30px;
   align-items: center;
   justify-content: right;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #303133;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
 }
 </style>

@@ -1,8 +1,23 @@
 <template>
   <div class="kline-section">
-    <div v-if="loadedData.length === 0">
-      <p>暂无数据</p>
+    <!-- 优化暂无数据的显示 -->
+    <div v-if="loadedData.length === 0" class="no-data-container">
+      <el-empty 
+        description="暂无净值数据" 
+        :image-size="120"
+      >
+        <template #image>
+          <div class="custom-empty-icon">
+            <i class="el-icon-data-line"></i>
+          </div>
+        </template>
+        <template #description>
+          <p class="no-data-text">暂无净值数据</p>
+          <p class="no-data-hint">请尝试选择其他货币对或策略</p>
+        </template>
+      </el-empty>
     </div>
+    
     <div v-for="(item, index) in loadedData" :key="index" class="kline-box">
       <h4>{{ item.title }}</h4>
       <div :ref="(el) => lineRefs[index] = el as HTMLElement | null" class="kline-canvas"></div>
@@ -33,6 +48,13 @@ const loadedData = ref<Array<{
   dates: string[];
 }>>([]);
 
+const currencyPairMap: Record<string, string> = {
+  "CNY/USD": "中美",
+  "CNY/EUR": "中欧",
+  "CNY/AUD": "中澳",
+  "CNY/JPY": "中日"
+}
+
 /** 组件挂载 & 监听 props 变化 */
 onMounted(() => {
   loadAndRender();
@@ -55,15 +77,15 @@ async function loadAndRender() {
   // 1. 判断要加载哪些文件
 const baseName = props.strategy; 
 const filesToTry = [
-    { filename: `${baseName}_result.json`, title: "传统策略净值折线图" },
-    { filename: `${baseName}+Model_result.json`, title: "模型融合净值折线图" }
+    { filename: `${baseName}_result`, title: "传统策略净值折线图" },
+    { filename: `${baseName}+Model_result`, title: "模型融合净值折线图" }
 ];
 
 // 2. 并行加载
 const results: Array<{ title: string; raw: any }> = [];
   for (const f of filesToTry) {
     try {
-      const url = `http://localhost:3000/data/backtest-result/${props.currencyPair}/${f.filename}`;
+      const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
       const res = await axios.get(url);
       results.push({ title: f.title, raw: res.data });
       console.log(`文件 ${f.filename} 加载成功`);
@@ -88,8 +110,8 @@ for (const r of results) {
     const lineData: [string, number][] = [];
     const dateArr: string[] = [];
     filtered.forEach((item: any) => {
-      const date = item.date;
-      const netWorthVal = item.Current_net_worth; 
+      const date = item.date.substring(0, 10);
+      const netWorthVal = item.current_net_worth; 
       lineData.push([date, netWorthVal]);
       dateArr.push(date);
     });
@@ -265,6 +287,42 @@ function calcStartDate(tr: string): string {
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  min-height: 300px; /* 确保即使没有数据也有一定高度 */
+}
+
+/* 暂无数据样式 */
+.no-data-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  width: 100%;
+}
+
+.custom-empty-icon {
+  font-size: 60px;
+  color: #10b981; /* 使用绿色主题 */
+  background: #ecfdf5;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.no-data-text {
+  font-size: 16px;
+  color: #374151;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.no-data-hint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .kline-box {

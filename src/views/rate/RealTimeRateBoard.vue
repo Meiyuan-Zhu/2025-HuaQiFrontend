@@ -138,7 +138,8 @@ interface TrendDataItem {
 
 // ================== 响应式数据 ================== //
 const baseCurrency = ref("CNY");   
-const searchQuery = ref("");
+// 移除未使用的变量或添加使用它的代码
+// const searchQuery = ref("");
 
 const showTrendModal = ref(false);
 const fromCurrency = ref("USD");
@@ -177,9 +178,10 @@ const filteredRates = computed(() => {
       sell: sell_price.toFixed(2),
       mid: toRate.toFixed(2),
     };
-  }).filter((item) =>
-    item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  })
+  // .filter((item) =>
+  //   item.currency.toLowerCase().includes(searchQuery.value.toLowerCase())
+  // );
 });
 
 // ================== 接口调用 ================== //
