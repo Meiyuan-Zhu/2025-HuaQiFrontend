@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, reactive, ref, watch } from "vue";
+import { nextTick, onMounted, reactive, ref, watch, computed } from "vue";
 import * as echarts from 'echarts/core';    
 import { GraphChart, HeatmapChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -7,7 +7,7 @@ import { TitleComponent, TooltipComponent, VisualMapComponent, LegendComponent }
 import { parseModel } from "../../utils/index";
 import { getInterpretData, GraphRequest, Link, Node2 } from "../../api/interpret";
 import { ElMessage } from 'element-plus';
-import { DataAnalysis } from '@element-plus/icons-vue'; // 导入图标
+import { DataAnalysis, InfoFilled } from '@element-plus/icons-vue'; // 添加 InfoFilled 图标
 
 // 注册必要组件
 echarts.use([
@@ -31,6 +31,18 @@ const model = ref('模型1')
 
 //可供选择的模型
 const modelList = ['模型1', '模型2', '模型3']
+
+// 添加模型说明，使用 Record 类型确保键是字符串
+const modelDescriptions: Record<string, string> = {
+  '模型1': '基于汇率数据',
+  '模型2': '基于汇率和基本面数据',
+  '模型3': '基于汇率、基本面数据和新闻情绪数据'
+};
+
+// 获取当前模型的描述
+const currentModelDescription = computed(() => {
+  return modelDescriptions[model.value] || '暂无描述';
+});
 
 onMounted(() => {
   updateChart();
@@ -256,6 +268,18 @@ onMounted(() => {
                 </div>
               </el-option>
             </el-select>
+            
+            <!-- 添加模型说明图标 -->
+            <el-tooltip
+              effect="light"
+              :content="currentModelDescription"
+              placement="bottom"
+              popper-class="model-tooltip"
+            >
+              <div class="model-info-icon">
+                <el-icon><InfoFilled /></el-icon>
+              </div>
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -334,6 +358,36 @@ onMounted(() => {
 /* 自定义下拉选择器样式 */
 .custom-select {
   width: 160px;
+}
+
+/* 添加模型信息图标样式 */
+.model-info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.model-info-icon:hover {
+  color: #3b82f6;
+}
+
+/* 自定义tooltip样式 */
+:deep(.model-tooltip) {
+  max-width: 280px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
 }
 
 :deep(.el-input__wrapper) {
