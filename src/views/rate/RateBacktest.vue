@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { ElSelect, ElOption } from "element-plus";
+import { ElSelect, ElOption, ElTooltip } from "element-plus";
 import "element-plus/es/components/select/style/css";
 import "element-plus/es/components/option/style/css";
+import "element-plus/es/components/tooltip/style/css";
 import BacktestKline from "./BacktestKline.vue"; 
 import BacktestPredLine from "./BacktestPredLine.vue";
 import BacktestNetWorth from "./BacktestNetWorth.vue";
@@ -124,48 +125,19 @@ let refreshTimer: number;
 // 添加主题状态
 const theme = ref('light'); // 默认使用浅色主题
 
-// 添加策略描述的计算属性
-const strategyDescription = computed(() => {
-  const rawDescriptions: Record<string, string> = {
-    "Aberration": "Aberration策略是一种基于价格波动的交易策略，利用价格与移动平均线的偏离程度来判断市场超买或超卖状态。当价格偏离移动平均线达到一定程度时，认为市场可能会回归，从而产生交易信号。",
-    "DualThrust": "DualThrust策略是一种区间突破策略，通过计算当日开盘价与前N日最高价、最低价的范围，设定上下轨，当价格突破上轨时做多，突破下轨时做空。该策略适合震荡行情中把握大波动。",
-    "MACD": "MACD（移动平均线收敛发散）策略是一种趋势跟踪指标，通过计算快速与慢速移动平均线之间的差异及其平均线，当MACD线与信号线交叉时产生买卖信号。适合识别中长期趋势。",
-    "Model": "Model策略是基于机器学习模型的预测策略，通过分析历史数据，训练模型来预测未来价格走势，并根据预测结果生成交易信号。该策略结合了多种技术指标和市场因素。",
-    "Momentum": "Momentum（动量）策略基于价格惯性原理，认为价格的上涨或下跌趋势会在一段时间内持续。该策略通过计算价格变化率，当动量指标超过阈值时产生交易信号。",
-    "Window": "Window（窗口）策略是一种基于时间窗口的交易策略，通过分析特定时间窗口内的价格模式和统计特性，识别重复出现的模式并据此生成交易信号。适合捕捉周期性波动。"
-  };
-  
-  // 将描述文本按照每行约15个字符进行格式化
-  const formatDescription = (text: string): string => {
-    const maxCharsPerLine = 15;
-    let result = '';
-    let currentLine = '';
-    
-    // 按词分割文本
-    const words = text.split(/(?<=[\s，。：；？！,.;:?!])/);
-    
-    for (const word of words) {
-      // 如果当前行加上新词超过限制，换行
-      if ((currentLine + word).length > maxCharsPerLine) {
-        result += currentLine + '\n';
-        currentLine = word;
-      } else {
-        currentLine += word;
-      }
-    }
-    
-    // 添加最后一行
-    if (currentLine) {
-      result += currentLine;
-    }
-    
-    return result;
-  };
-  
-  const description = rawDescriptions[selectedStrategy.value] || "暂无该策略的详细说明";
-  return formatDescription(description);
-});
+// 修改提示框状态和逻辑
+const showTooltip = ref(false);
+const tooltipPosition = ref({ x: 0, y: 0 });
+const tooltipTarget = ref<HTMLElement | null>(null);
 
+// 点击页面其他地方关闭提示框
+const handleClickOutside = (event: MouseEvent) => {
+  if (showTooltip.value && tooltipTarget.value && !tooltipTarget.value.contains(event.target as Node)) {
+    showTooltip.value = false;
+  }
+};
+
+// 在组件挂载时添加点击事件监听
 onMounted(() => {
   fetchCurrentRate();
   // 每60秒刷新一次数据
@@ -187,10 +159,93 @@ onMounted(() => {
     }
     mediaQuery.removeEventListener('change', updateTheme);
   });
+
+  document.addEventListener('click', handleClickOutside);
+});
+
+// 在组件卸载时移除点击事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+// 修改策略描述的计算属性，使用selectedStrategy而不是hoveredStrategy
+const strategyDescription = computed(() => {
+  const strategyDescriptions: Record<string, { title: string, content: string }> = {
+    "Aberration": {
+      title: "Aberration策略",
+      content: "利用 35 日移动平均线和标准差设上中下轨，突破上/下轨开多/空，穿中轨平仓以捕捉趋势。"
+    },
+    "DualThrust": {
+      title: "DualThrust策略",
+      content: "计算前 N 天价格区间，开盘价加减触发值定上下轨，突破上/下轨买入/卖出。"
+    },
+    "MACD": {
+      title: "MACD策略",
+      content: "指数平滑异同移动平均线策略。通过 12 日与 26 日 EMA 差值（DIF）及 9 日 EMA（DEA）交叉，金叉买、死叉卖。"
+    },
+    "Model": {
+      title: "Model策略",
+      content: "直接依据 MTGNN 模型预测，未来 5 天 4 天高于今价买入，反之卖出。"
+    },
+    "Momentum": {
+      title: "Momentum策略",
+      content: "趋势跟踪策略，根据最近几天连续上涨行的天数来反应趋势，反应灵敏，适合高流动性、短期趋势明确市场，捕捉短期趋势。"
+    },
+    "Window": {
+      title: "Window策略",
+      content: "以当前价在过去 5 天及模型预测未来 5 天共 11 天中为极值判断买卖，极值处买卖。"
+    }
+  };
+  
+  const enhancedDescriptions: Record<string, { title: string, content: string }> = {
+    "Aberration": {
+      title: "Aberration Enhanced策略",
+      content: "Aberration 策略结合 MTGNN 模型，模型辅助判断，减少盲目及滞后交易。具体以买入为例，有两种情况下会买入，一是Aberration判断要买入时需要模型同时预测未来五天中至少有一天是高于现值的（为了预防盲目交易），二是模型预测未来5天全高于现价时买入（为了针对滞后交易）。卖出时同理。"
+    },
+    "Momentum": {
+      title: "Momentum Enhanced策略",
+      content: "Momentum 策略结合 MTGNN 模型，模型过滤信号，降低风险，优化交易条件。即momentum判断要买入时必须模型同时判断有至少3天价格高于今价才可买入 or 模型判断未来5天价格都高于今天的，卖出时同理。"
+    },
+    "Window": {
+      title: "Windows Enhanced策略",
+      content: "Windows 法结合 MTGNN 模型，进一步优化基于价格极值的买卖判断。具体而言以过去五天以及模型预测未来五天为基础判断。"
+    },
+    "DualThrust": {
+      title: "Dual Thrust Enhanced策略",
+      content: "Dual Thrust 策略结合 MTGNN 模型，模型确认突破趋势后再执行买卖，根据后5天的趋势判断是突破行情还是反弹行情。"
+    },
+    "MACD": {
+      title: "MACD Enhanced策略",
+      content: "MACD 策略结合 MTGNN 模型，模型辅助判断，减少最大回撤及波动。有两种情况下会买入，一是MACD判断要买入时需要模型同时预测未来五天中至少有一天是高于现值的（为了预防盲目交易），二是模型预测未来5天全高于现价时买入（为了针对滞后交易）。卖出时同理。"
+    }
+  };
+  
+  // 获取基础策略名称（移除可能的 "Enhanced" 后缀）
+  const baseStrategy = selectedStrategy.value.replace(" Enhanced", "");
+  
+  // 获取基础策略描述
+  const baseDesc = strategyDescriptions[baseStrategy];
+  
+  // 构建HTML格式的描述
+  let htmlDesc = '';
+  
+  if (baseDesc) {
+    htmlDesc += `<strong>${baseDesc.title}</strong>：${baseDesc.content}`;
+  }
+  
+  // 如果不是Model策略，添加增强版策略描述
+  if (baseStrategy !== "Model") {
+    const enhancedDesc = enhancedDescriptions[baseStrategy];
+    if (enhancedDesc) {
+      htmlDesc += `<br><br><strong>${enhancedDesc.title}</strong>：${enhancedDesc.content}`;
+    }
+  }
+  
+  return htmlDesc;
 });
 </script>
 <template>
-  <div class="backtest-page">
+  <div class="backtest-page" :data-theme="theme">
     <!-- 页面标题区 -->
     <div class="page-header">
       <h1 class="page-title">汇率回测</h1>
@@ -251,36 +306,39 @@ onMounted(() => {
 
         <!-- 策略选择卡片 -->
         <div class="control-card">
-          <div class="card-title">
-            交易策略
+          <div class="card-title-container">
+            <div class="card-title">策略选择</div>
             <el-tooltip
-              class="strategy-tooltip"
+              class="strategy-info-tooltip"
               effect="light"
+              placement="top"
               :content="strategyDescription"
-              placement="top-start"
-              :popper-class="'strategy-tooltip-popper'"
+              :enterable="false"
+              :show-after="300"
+              popper-class="strategy-tooltip-popper"
+              raw-content
             >
-              <i class="el-icon-question strategy-info-icon">
-                <svg viewBox="0 0 1024 1024" width="16" height="16">
-                  <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"></path>
-                  <path fill="currentColor" d="M512 336c-45.9 0-83.3 37.4-83.3 83.3v35.4c0 5.5 4.5 10 10 10h46.7c5.5 0 10-4.5 10-10v-35.4c0-9.2 7.5-16.7 16.7-16.7 9.2 0 16.7 7.5 16.7 16.7v35.4c0 5.5 4.5 10 10 10h46.7c5.5 0 10-4.5 10-10v-35.4c-.1-45.9-37.5-83.3-83.5-83.3z"></path>
-                  <path fill="currentColor" d="M445.8 548.3h130.5c5.5 0 10-4.5 10-10v-46.7c0-5.5-4.5-10-10-10H445.8c-5.5 0-10 4.5-10 10v46.7c0 5.5 4.5 10 10 10z"></path>
-                  <path fill="currentColor" d="M512 642c-22.9 0-41.7 18.7-41.7 41.7 0 22.9 18.7 41.7 41.7 41.7 22.9 0 41.7-18.7 41.7-41.7 0-23-18.7-41.7-41.7-41.7z"></path>
-                </svg>
-              </i>
+              <div class="info-icon">
+                <i class="el-icon-info">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </i>
+              </div>
             </el-tooltip>
           </div>
-          <el-select
-            v-model="selectedStrategy"
-            placeholder="请选择策略"
-            class="select-control">
-            <el-option
-              v-for="str in strategies"
-              :key="str"
-              :label="str"
-              :value="str">
-            </el-option>
-          </el-select>
+          <div class="strategy-selector">
+            <el-select v-model="selectedStrategy" placeholder="选择策略" class="strategy-select">
+              <el-option
+                v-for="strategy in strategies"
+                :key="strategy"
+                :label="strategy"
+                :value="strategy"
+              />
+            </el-select>
+          </div>
         </div>
 
         <!-- 时间跨度选择卡片 -->
@@ -298,6 +356,17 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 自定义提示框 -->
+    <div 
+      v-if="showTooltip" 
+      class="custom-tooltip"
+      :style="{
+        left: `${tooltipPosition.x}px`,
+        top: `${tooltipPosition.y}px`
+      }"
+      v-html="strategyDescription"
+    ></div>
 
     <!-- 主要内容区 -->
     <div class="main-content">
@@ -516,7 +585,7 @@ onMounted(() => {
 .control-card {
   background: #ffffff !important;
   border: 1px solid #e2e8f0;
-  padding: 20px;
+  padding: 16px;
   border-radius: 12px;
   flex: 1;
   min-width: 250px;
@@ -538,17 +607,78 @@ onMounted(() => {
   gap: 8px;
 }
 
-.strategy-info-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  cursor: pointer;
-  transition: color 0.3s ease;
+/* 修改策略选择器布局为两行三列 */
+.strategy-selector {
+  width: 100%;
+  margin-top: -10px;
 }
 
-.strategy-info-icon:hover {
-  color: #3b82f6;
+.strategy-select {
+  width: 100%;
+}
+
+/* 确保所有el-select组件样式一致 */
+:deep(.el-select) {
+  width: 100%;
+}
+
+:deep(.el-input__wrapper) {
+  height: 40px;  /* 统一高度 */
+  padding: 0 12px;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  box-shadow: none !important;
+  transition: all 0.3s;
+}
+
+:deep(.el-input__wrapper:hover) {
+  border-color: #cbd5e1;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 深色模式下的输入框样式 */
+@media (prefers-color-scheme: dark) {
+  .backtest-page[data-theme="dark"] :deep(.el-input__wrapper) {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.el-input__wrapper:hover) {
+    border-color: #475569;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.el-input__wrapper.is-focus) {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3) !important;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.el-select-dropdown__item) {
+    color: #e2e8f0;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.el-select-dropdown__item.hover) {
+    background-color: #334155;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.el-select-dropdown__item.selected) {
+    color: #3b82f6;
+  }
+}
+
+/* 控制卡片内部元素间距 */
+.control-card .card-title-container {
+  margin-bottom: 12px;
+}
+
+/* 确保所有控制卡片内的选择器有一致的间距 */
+.control-card .el-select {
+  margin-bottom: 0;
 }
 
 .time-selector {
@@ -809,14 +939,86 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-/* 自定义tooltip样式 */
-:deep(.strategy-tooltip-popper) {
-  max-width: 150px !important;
-  line-height: 1.8;
+/* 自定义提示框样式 */
+.custom-tooltip {
+  position: absolute;
+  z-index: 9999;
+  max-width: 300px;
+  line-height: 1.6;
   padding: 16px 20px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  font-size: 16px;
+  font-size: 14px;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.custom-tooltip :deep(strong) {
+  font-weight: 600;
+  color: #0055bb;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 深色模式下的提示框样式 */
+@media (prefers-color-scheme: dark) {
+  .backtest-page[data-theme="dark"] .custom-tooltip {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .backtest-page[data-theme="dark"] .custom-tooltip :deep(strong) {
+    color: #60a5fa;
+  }
+}
+
+/* 修改策略选择器样式 */
+.card-title-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0px;
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  color: #64748b;
+  transition: color 0.3s;
+  margin-top: -2px;
+  position: relative;
+  top: -1px;
+}
+
+.info-icon:hover {
+  color: #3b82f6;
+}
+
+.info-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 自定义tooltip样式 */
+:deep(.strategy-tooltip-popper) {
+  max-width: 300px !important;
+  line-height: 1.6;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
   color: #1e293b;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -824,10 +1026,9 @@ onMounted(() => {
   word-break: break-word;
 }
 
-/* 修改Element Plus的tooltip样式 */
-:deep(.el-tooltip__popper) {
-  max-width: 150px !important;
-  width: 150px !important;
+:deep(.strategy-tooltip-popper strong) {
+  font-weight: 600;
+  color: #0055bb;
 }
 
 /* 深色模式下的tooltip样式 */
@@ -836,6 +1037,18 @@ onMounted(() => {
     background: #2d3748;
     color: #e2e8f0;
     border-color: #4a5568;
+  }
+  
+  .backtest-page[data-theme="dark"] :deep(.strategy-tooltip-popper strong) {
+    color: #60a5fa;
+  }
+  
+  .backtest-page[data-theme="dark"] .info-icon {
+    color: #94a3b8;
+  }
+  
+  .backtest-page[data-theme="dark"] .info-icon:hover {
+    color: #60a5fa;
   }
 }
 </style>
