@@ -11,6 +11,5 @@
 <style scoped>
 #container {  
   background-color: rgba(135, 169, 188, 0.048);
-  overflow-y: hidden;
 }
 </style>

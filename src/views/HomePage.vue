@@ -34,7 +34,7 @@ const scrollToSection = (sectionId: string) => {
   }
 };
 
-// 模块信息
+// 模块信息 - 删除用户中心
 const modules = [
   {
     title: "实时汇率",
@@ -59,51 +59,65 @@ const modules = [
     description: "透明展示AI预测背后的逻辑和依据，通过可视化图表和详细解释，让用户理解预测结果的形成过程。",
     icon: "el-icon-document",
     path: "/interpret"
-  },
-  {
-    title: "用户中心",
-    description: "个性化用户空间，管理账户信息、查看历史记录、设置偏好货币对，提供定制化的使用体验。",
-    icon: "el-icon-user",
-    path: "/dashboard"
   }
 ];
 
-// 团队成员信息
-const teamMembers = [
+// 修改团队成员信息
+const teachers = [
   {
-    name: "指导老师",
+    name: "张教授",
     role: "项目指导",
     photo: "https://via.placeholder.com/150",
     description: "资深金融科技专家，在量化交易和AI应用领域拥有丰富经验，为项目提供专业指导和行业洞见。"
   },
   {
-    name: "张三",
-    role: "项目负责人",
+    name: "李教授",
+    role: "项目指导",
     photo: "https://via.placeholder.com/150",
-    description: "负责项目整体规划和协调，拥有多年金融数据分析经验，专注于AI在金融领域的应用研究。"
-  },
-  {
-    name: "李四",
-    role: "算法工程师",
-    photo: "https://via.placeholder.com/150",
-    description: "负责核心预测算法开发，精通机器学习和深度学习技术，在时间序列预测方面有独到见解。"
-  },
-  {
-    name: "王五",
-    role: "前端开发",
-    photo: "https://via.placeholder.com/150",
-    description: "负责用户界面设计和实现，致力于打造直观、易用的交互体验，让复杂的数据分析变得简单明了。"
+    description: "国际金融学专家，在外汇市场研究方面有深厚造诣，为项目提供理论支持和实践指导。"
   }
+];
+
+// 团队成员信息 - 20位成员
+const teamMembers = [
+  { name: "张三", role: "项目负责人", photo: "https://via.placeholder.com/150" },
+  { name: "李四", role: "算法工程师", photo: "https://via.placeholder.com/150" },
+  { name: "王五", role: "前端开发", photo: "https://via.placeholder.com/150" },
+  { name: "赵六", role: "数据分析师", photo: "https://via.placeholder.com/150" },
+  { name: "钱七", role: "后端开发", photo: "https://via.placeholder.com/150" },
+  { name: "孙八", role: "UI设计师", photo: "https://via.placeholder.com/150" },
+  { name: "周九", role: "测试工程师", photo: "https://via.placeholder.com/150" },
+  { name: "吴十", role: "产品经理", photo: "https://via.placeholder.com/150" },
+  { name: "郑十一", role: "算法工程师", photo: "https://via.placeholder.com/150" },
+  { name: "王十二", role: "前端开发", photo: "https://via.placeholder.com/150" },
+  { name: "李十三", role: "数据分析师", photo: "https://via.placeholder.com/150" },
+  { name: "张十四", role: "后端开发", photo: "https://via.placeholder.com/150" },
+  { name: "刘十五", role: "UI设计师", photo: "https://via.placeholder.com/150" },
+  { name: "陈十六", role: "测试工程师", photo: "https://via.placeholder.com/150" },
+  { name: "杨十七", role: "产品经理", photo: "https://via.placeholder.com/150" },
+  { name: "黄十八", role: "算法工程师", photo: "https://via.placeholder.com/150" },
+  { name: "周十九", role: "前端开发", photo: "https://via.placeholder.com/150" },
+  { name: "吴二十", role: "数据分析师", photo: "https://via.placeholder.com/150" },
+  { name: "郑二一", role: "后端开发", photo: "https://via.placeholder.com/150" },
+  { name: "王二二", role: "UI设计师", photo: "https://via.placeholder.com/150" }
 ];
 </script>
 
 <template>
   <!-- 整个页面容器 -->
-  <el-main class="home-container">
+  <div class="home-container">
     <!-- 第一屏：背景图片和标题 -->
     <section class="hero-section">
       <div class="background" :style="{ backgroundImage: `url(${backgroundImage})` }">
         <div class="overlay"></div>
+        
+        <!-- 添加动态粒子背景 -->
+        <div class="particles-container">
+          <div v-for="n in 50" :key="n" class="particle"></div>
+        </div>
+        
+        <!-- 添加动态连线效果 -->
+        <div class="network-lines"></div>
         
         <!-- 页面布局 -->
         <div class="page-layout">
@@ -111,20 +125,26 @@ const teamMembers = [
           <div class="hero-content">
             <div class="hero-text-container">
               <h1 class="hero-title">
-                Forexseek
+                <span class="tech-text">Forex</span><span class="gradient-text">seek</span>
               </h1>
-              <h2 class="hero-subtitle">
-                Harness AI and big data to analyze forex risks, predict trends, and optimize investment strategies.
+              <h2 class="hero-subtitle typing-effect">
+                Empower your forex trading with AI and big data.
               </h2>
             </div>
             
             <!-- 导航按钮 -->
             <div class="nav-buttons">
-              <button class="nav-button" @click="scrollToSection('project-intro')">
+              <button class="nav-button glow-effect" @click="scrollToSection('project-intro')">
                 项目介绍
+                <span class="glow-container">
+                  <span class="glow"></span>
+                </span>
               </button>
-              <button class="nav-button" @click="scrollToSection('team-intro')">
+              <button class="nav-button glow-effect" @click="scrollToSection('team-intro')">
                 团队介绍
+                <span class="glow-container">
+                  <span class="glow"></span>
+                </span>
               </button>
             </div>
           </div>
@@ -134,8 +154,14 @@ const teamMembers = [
     
     <!-- 第二屏：项目介绍 -->
     <section id="project-intro" class="intro-section">
+      <!-- 添加科技感装饰元素 -->
+      <div class="tech-decoration left-decoration"></div>
+      <div class="tech-decoration right-decoration"></div>
+      
       <div class="section-container">
-        <h2 class="section-title">项目介绍</h2>
+        <h2 class="section-title">
+          <span class="highlight-text">项目介绍</span>
+        </h2>
         <p class="section-description">
           Forexseek是一个基于人工智能和大数据的外汇分析平台，旨在为用户提供精准的汇率预测、风险分析和投资策略优化。
           通过整合全球金融数据和先进的机器学习算法，我们致力于帮助投资者做出更明智的决策。
@@ -161,28 +187,53 @@ const teamMembers = [
     
     <!-- 第三屏：团队介绍 -->
     <section id="team-intro" class="team-section">
+      <!-- 添加科技感装饰元素 -->
+      <div class="tech-circles"></div>
+      
+      <!-- 添加动态连接线背景 -->
+      <div class="team-network-lines"></div>
+      
+      <!-- 添加浮动科技元素 -->
+      <div class="floating-tech-elements">
+        <div class="tech-element" v-for="i in 5" :key="i"></div>
+      </div>
+      
       <div class="section-container">
-        <h2 class="section-title">团队介绍</h2>
+        <h2 class="section-title">
+          <span class="highlight-text">团队介绍</span>
+        </h2>
         <p class="section-description">
           我们的团队由金融、数据科学和软件开发领域的专业人士组成，拥有丰富的行业经验和技术背景。
           团队成员致力于将前沿技术应用于金融分析，为用户创造价值。
         </p>
         
-        <div class="team-grid">
-          <div v-for="(member, index) in teamMembers" :key="index" class="team-member">
-            <div class="member-photo">
-              <img :src="member.photo" :alt="member.name">
+        <!-- 指导老师部分 -->
+        <div class="team-category">
+          <h3 class="category-title">指导老师</h3>
+          <div class="teachers-grid">
+            <div v-for="(teacher, index) in teachers" :key="index" class="teacher-card">
+              <div class="teacher-info">
+                <h3 class="teacher-name">{{ teacher.name }}</h3>
+                <div class="teacher-role">{{ teacher.role }}</div>
+                <p class="teacher-description">{{ teacher.description }}</p>
+              </div>
             </div>
-            <div class="member-info">
-              <h3 class="member-name">{{ member.name }}</h3>
+          </div>
+        </div>
+        
+        <!-- 团队成员部分 -->
+        <div class="team-category">
+          <h3 class="category-title">团队成员</h3>
+          <div class="members-grid">
+            <div v-for="(member, index) in teamMembers" :key="index" class="member-card">
+              <div class="member-name">{{ member.name }}</div>
               <div class="member-role">{{ member.role }}</div>
-              <p class="member-description">{{ member.description }}</p>
             </div>
           </div>
         </div>
       </div>
     </section>
-  </el-main>
+  </div>
 </template>
 
 <style>
@@ -194,7 +245,7 @@ const teamMembers = [
 }
 
 section {
-  height: 100vh;
+  min-height: 100vh;
   scroll-snap-align: start;
   position: relative;
 }
@@ -236,6 +287,7 @@ section {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 0 50px;
 }
 
@@ -243,6 +295,7 @@ section {
   max-width: 700px;
   color: #fff;
   animation: fadeInUp 2s ease forwards;
+  text-align: center;
 }
 
 .hero-title {
@@ -263,6 +316,7 @@ section {
   display: flex;
   gap: 20px;
   margin-top: 30px;
+  justify-content: center;
 }
 
 .nav-button {
@@ -307,7 +361,8 @@ section {
 /* 第二屏：项目介绍 */
 .intro-section {
   background-color: #f8f9fa;
-  padding: 80px 0;
+  padding: 60px 0;
+  min-height: 90vh;
 }
 
 .section-container {
@@ -334,7 +389,7 @@ section {
 
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 30px;
 }
 
@@ -400,59 +455,116 @@ section {
 /* 第三屏：团队介绍 */
 .team-section {
   background-color: #fff;
-  padding: 80px 0;
-}
-
-.team-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-  gap: 40px;
-}
-
-.team-member {
-  display: flex;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  padding: 80px 0 120px;
+  position: relative;
   overflow: hidden;
+}
+
+.team-category {
+  margin-bottom: 50px;
+}
+
+.category-title {
+  font-size: 1.8em;
+  text-align: center;
+  margin: 40px 0 30px;
+  color: #333;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.category-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #0055bb, rgba(0, 85, 187, 0.2));
+  border-radius: 3px;
+}
+
+/* 指导老师样式 */
+.teachers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px;
+  margin-bottom: 60px;
+}
+
+.teacher-card {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 30px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
 }
 
-.team-member:hover {
+.teacher-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
-.member-photo {
-  flex: 0 0 150px;
+.teacher-info {
+  padding: 0;
 }
 
-.member-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.member-info {
-  flex: 1;
-  padding: 20px;
-}
-
-.member-name {
-  font-size: 1.3em;
+.teacher-name {
+  font-size: 1.5em;
   margin: 0 0 5px;
   color: #333;
 }
 
-.member-role {
+.teacher-role {
   color: #0055bb;
   font-weight: 600;
   margin-bottom: 15px;
 }
 
-.member-description {
+.teacher-description {
   color: #666;
   line-height: 1.6;
+}
+
+/* 团队成员样式 - 网格布局 */
+.members-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.member-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.member-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.member-name {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #333;
+}
+
+.member-role {
+  font-size: 0.9em;
+  color: #0055bb;
 }
 
 /* 动画效果 */
@@ -468,20 +580,32 @@ section {
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .modules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .members-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .modules-grid {
     grid-template-columns: 1fr;
   }
   
-  .team-grid {
+  .teachers-grid {
     grid-template-columns: 1fr;
   }
   
-  .team-member {
+  .teacher-card {
     flex-direction: column;
   }
   
-  .member-photo {
+  .teacher-photo {
     flex: 0 0 200px;
   }
   
@@ -495,6 +619,443 @@ section {
   
   .hero-subtitle {
     font-size: 1em;
+  }
+}
+
+@media (max-width: 480px) {
+  .members-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 添加粒子动画效果 */
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: float 15s infinite linear;
+}
+
+.particle:nth-child(even) {
+  width: 3px;
+  height: 3px;
+  background-color: rgba(59, 130, 246, 0.6);
+}
+
+.particle:nth-child(3n) {
+  width: 1px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.particle:nth-child(5n) {
+  width: 4px;
+  height: 4px;
+  background-color: rgba(99, 102, 241, 0.4);
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(100vw);
+    opacity: 0;
+  }
+}
+
+/* 为每个粒子设置不同的起始位置和动画延迟 */
+.particle:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; }
+.particle:nth-child(2) { top: 20%; left: 80%; animation-delay: 0.5s; }
+.particle:nth-child(3) { top: 30%; left: 45%; animation-delay: 1s; }
+.particle:nth-child(4) { top: 40%; left: 10%; animation-delay: 1.5s; }
+.particle:nth-child(5) { top: 50%; left: 70%; animation-delay: 2s; }
+.particle:nth-child(6) { top: 60%; left: 30%; animation-delay: 2.5s; }
+.particle:nth-child(7) { top: 70%; left: 90%; animation-delay: 3s; }
+.particle:nth-child(8) { top: 80%; left: 50%; animation-delay: 3.5s; }
+.particle:nth-child(9) { top: 90%; left: 15%; animation-delay: 4s; }
+.particle:nth-child(10) { top: 95%; left: 85%; animation-delay: 4.5s; }
+/* 继续为其他粒子设置... */
+
+/* 网络连线效果 */
+.network-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  z-index: 1;
+  animation: networkMove 20s infinite linear;
+}
+
+@keyframes networkMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 50px 50px;
+  }
+}
+
+/* 标题样式增强 */
+.tech-text {
+  font-family: 'Arial', sans-serif;
+  font-weight: 800;
+  letter-spacing: 1px;
+  position: relative;
+  color: #fff;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  position: relative;
+}
+
+/* 打字机效果 */
+.typing-effect {
+  overflow: hidden;
+  border-right: 3px solid #3b82f6;
+  white-space: nowrap;
+  margin: 50px auto 30px;
+  animation: 
+    typing 3.5s steps(40, end),
+    blink-caret 0.75s step-end infinite;
+  max-width: 700px;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: #3b82f6 }
+}
+
+/* 按钮发光效果 */
+.glow-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  transform: rotate(45deg);
+  animation: glow-rotate 3s infinite linear;
+}
+
+@keyframes glow-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 科技感装饰元素 */
+.tech-decoration {
+  position: absolute;
+  width: 200px;
+  height: 400px;
+  z-index: 0;
+}
+
+.left-decoration {
+  left: 0;
+  top: 20%;
+  background: 
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent),
+    radial-gradient(circle at 30% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  border-right: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.right-decoration {
+  right: 0;
+  top: 40%;
+  background: 
+    linear-gradient(-90deg, rgba(59, 130, 246, 0.1), transparent),
+    radial-gradient(circle at 70% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  border-left: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.tech-circles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 30%);
+  z-index: 0;
+}
+
+/* 标题高亮效果 */
+.highlight-text {
+  position: relative;
+  display: inline-block;
+  padding: 0 10px;
+}
+
+.highlight-text::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  z-index: -1;
+  border-radius: 5px;
+}
+
+/* 模块卡片增强 */
+.module-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.module-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 20px 20px 0;
+  border-color: transparent rgba(59, 130, 246, 0.1) transparent transparent;
+  transition: all 0.3s ease;
+}
+
+.module-card:hover::after {
+  border-width: 0 30px 30px 0;
+  border-color: transparent rgba(59, 130, 246, 0.3) transparent transparent;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .typing-effect {
+    white-space: normal;
+    border-right: none;
+    animation: none;
+  }
+  
+  .tech-decoration {
+    display: none;
+  }
+}
+
+/* 第三屏：团队介绍 - 新增科技感效果 */
+.team-section {
+  background-color: #fff;
+  padding: 80px 0 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 团队介绍动态连接线背景 */
+.team-network-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 85, 187, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 85, 187, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  z-index: 0;
+  animation: teamNetworkMove 15s infinite linear;
+}
+
+@keyframes teamNetworkMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 30px 30px;
+  }
+}
+
+/* 浮动科技元素 */
+.floating-tech-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.tech-element {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 1px solid rgba(0, 85, 187, 0.1);
+  border-radius: 50%;
+  animation: floatElement 10s infinite ease-in-out;
+}
+
+.tech-element::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border: 1px dashed rgba(0, 85, 187, 0.15);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tech-element:nth-child(1) {
+  top: 15%;
+  left: 10%;
+  animation-delay: 0s;
+  width: 100px;
+  height: 100px;
+}
+
+.tech-element:nth-child(2) {
+  top: 70%;
+  left: 5%;
+  animation-delay: 1s;
+  width: 60px;
+  height: 60px;
+}
+
+.tech-element:nth-child(3) {
+  top: 25%;
+  right: 8%;
+  animation-delay: 2s;
+  width: 120px;
+  height: 120px;
+}
+
+.tech-element:nth-child(4) {
+  top: 60%;
+  right: 12%;
+  animation-delay: 3s;
+  width: 90px;
+  height: 90px;
+}
+
+.tech-element:nth-child(5) {
+  top: 85%;
+  right: 25%;
+  animation-delay: 4s;
+  width: 70px;
+  height: 70px;
+}
+
+@keyframes floatElement {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+  100% {
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+/* 团队成员卡片增强效果 */
+.member-card {
+  position: relative;
+  z-index: 1;
+}
+
+.member-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #0055bb, transparent);
+  transform: scaleX(0);
+  transition: transform 0.5s ease;
+}
+
+.member-card:hover::after {
+  transform: scaleX(1);
+}
+
+/* 教师卡片增强效果 */
+.teacher-card {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.teacher-card::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background: linear-gradient(135deg, rgba(0, 85, 187, 0.2), transparent);
+  border-radius: 15px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.teacher-card:hover::before {
+  opacity: 1;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .floating-tech-elements {
+    display: none;
   }
 }
 </style>
