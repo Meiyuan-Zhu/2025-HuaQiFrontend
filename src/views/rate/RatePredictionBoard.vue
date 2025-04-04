@@ -687,6 +687,7 @@ const downloadReport = async () => {
   min-height: 100vh;
   background: #f0f2f5;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .page-header {

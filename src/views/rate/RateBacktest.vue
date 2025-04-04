@@ -300,6 +300,7 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(to bottom, #ffffff, #f8fafc) !important;
   padding: 24px 32px;
+  overflow-y: auto;
 }
 
 .page-header {

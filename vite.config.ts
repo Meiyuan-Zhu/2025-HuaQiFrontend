@@ -17,7 +17,7 @@ export default defineConfig({
             resolvers: [ElementPlusResolver()],
         })],
     server: {
-        port: 3000,   //设定前端运行的端口
+        port: 5570,   //设定前端运行的端口
         open: true,
         proxy: {
             '/api': {

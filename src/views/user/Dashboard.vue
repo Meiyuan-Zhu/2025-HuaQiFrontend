@@ -37,11 +37,6 @@ const changeDisabled = computed(() => {
 
 function getUserInfo() {
   if (sessionStorage.getItem('user') == null) {
-    ElMessage({
-      message: '请先登录',
-      type: 'error',
-      center: true,
-    });
     router.push('/login')
   }else{
     user.value = JSON.parse(sessionStorage.getItem('user') || '{}');
