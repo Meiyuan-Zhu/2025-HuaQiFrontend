@@ -26,7 +26,6 @@ declare module 'vue' {
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElResult: typeof import('element-plus/es')['ElResult']
     ElSelect: typeof import('element-plus/es')['ElSelect']
-    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Header: typeof import('./src/components/Header.vue')['default']
     Menu: typeof import('./src/components/Menu.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

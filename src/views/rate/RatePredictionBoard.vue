@@ -694,6 +694,25 @@ const downloadReport = async () => {
   height: 100%;
   margin-top: 10px;
 }
+
+/* 添加全局样式重置，确保一致性 */
+.backtest-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f0f2f5;
+  padding: 20px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* 确保 Markdown 样式在全局范围内可用 */
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  padding: 16px;
+}
 </style>
 
 <style scoped>
@@ -1145,5 +1164,29 @@ const downloadReport = async () => {
   50% {
     opacity: 0;
   }
+}
+
+/* 添加强制布局重置，确保一致性 */
+.page-header, 
+.top-section, 
+.main-content,
+.analysis-section,
+.report-section {
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 确保图表容器尺寸一致 */
+.chart-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保报告区域样式一致 */
+.report-section {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 20px;
 }
 </style>

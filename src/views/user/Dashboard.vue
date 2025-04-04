@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { router } from '../../router'
 import { Message, Lock, SwitchButton } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -45,6 +45,17 @@ function getUserInfo() {
 
 onMounted(() => {
   getUserInfo()
+  // 添加一个小延迟确保样式正确应用
+  setTimeout(() => {
+    document.body.style.overflow = 'auto'
+    document.body.style.height = 'auto'
+  }, 100)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.body.style.height = ''
 })
 
 const updatePassword = () => {
@@ -245,7 +256,10 @@ const handleLogout = () => {
   gap: 20px;
   align-items: center;
   background-color: #f5f7fa;
-  min-height: 100%;
+  min-height: calc(100vh - 60px); /* 修改为视口高度减去可能的头部高度 */
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
 }
 
 .card-header {
@@ -344,8 +358,20 @@ label {
 
 @media (max-width: 768px) {
   .user-card, .password-card, .contact-card {
-    width: 90%;
+    width: 100%;
+    max-width: 100%;
   }
+  
+  .main-container {
+    padding: 10px;
+    gap: 15px;
+  }
+}
+
+/* 确保在所有情况下元素都能正确显示 */
+:deep(.el-card__body) {
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>
 
