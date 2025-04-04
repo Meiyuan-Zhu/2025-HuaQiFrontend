@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElForm, ElFormItem } from "element-plus"
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { router } from '../../router'
 import { userLogin } from "../../api/user.ts"
 
@@ -15,6 +15,21 @@ const hasPasswordInput = computed(() => password.value != '')
 // 登录按钮可用性
 const loginDisabled = computed(() => {
   return !(hasTelInput.value && hasPasswordInput.value)
+})
+
+// 确保布局一致性
+onMounted(() => {
+  // 添加一个小延迟确保样式正确应用
+  setTimeout(() => {
+    document.body.style.overflow = 'auto'
+    document.body.style.height = 'auto'
+  }, 100)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.body.style.height = ''
 })
 
 // 登录按钮触发
@@ -101,12 +116,14 @@ function handleLogin() {
 <style scoped>
 .main-frame {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f5f7fa;
-  padding-bottom: 10vh; /* 向上移动登录卡片 */
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .login-card {
@@ -116,6 +133,7 @@ function handleLogin() {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: fadeIn 0.5s ease-out; /* 添加淡入动画 */
+  margin-bottom: 10vh; /* 向上移动登录卡片 */
 }
 
 @keyframes fadeIn {
@@ -160,5 +178,18 @@ label {
 
 .el-form-item {
   margin-bottom: 20px;
+}
+
+/* 添加响应式调整 */
+@media (max-width: 768px) {
+  .login-card {
+    width: 90%;
+    max-width: 400px;
+    padding: 15px;
+  }
+  
+  .button-group {
+    gap: 15px;
+  }
 }
 </style>

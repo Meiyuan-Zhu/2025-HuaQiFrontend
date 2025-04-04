@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted, onUnmounted} from 'vue'
 import {router} from '../../router'
 import {userRegister} from "../../api/user.ts"
 
@@ -21,6 +21,21 @@ const registerDisabled = computed(() => {
   } else {
     return true;
   }
+})
+
+// 确保布局一致性
+onMounted(() => {
+  // 添加一个小延迟确保样式正确应用
+  setTimeout(() => {
+    document.body.style.overflow = 'auto'
+    document.body.style.height = 'auto'
+  }, 100)
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.body.style.height = ''
 })
 
 // 注册按钮触发
@@ -113,11 +128,14 @@ function handleRegister() {
 <style scoped>
 .main-frame {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f5f7fa;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .login-card {
@@ -126,6 +144,19 @@ function handleRegister() {
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-out; /* 添加淡入动画 */
+  margin-bottom: 10vh; /* 向上移动注册卡片 */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .error-warn {
@@ -159,5 +190,18 @@ label {
 
 .el-form-item {
   margin-bottom: 20px;
+}
+
+/* 添加响应式调整 */
+@media (max-width: 768px) {
+  .login-card {
+    width: 90%;
+    max-width: 400px;
+    padding: 15px;
+  }
+  
+  .button-group {
+    gap: 15px;
+  }
 }
 </style>

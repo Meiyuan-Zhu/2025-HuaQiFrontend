@@ -1,7 +1,7 @@
 <template>
   <div class="kline-section">
     <!-- 优化暂无数据的显示 -->
-    <div v-if="loadedData.length === 0" class="no-data-container">
+    <div v-if="loadedData.length === 0 && !isLoading" class="no-data-container">
       <el-empty 
         description="暂无预测数据" 
         :image-size="120"
@@ -38,6 +38,12 @@ const props = defineProps<{
   timeRange: string;
 }>();
 
+// 定义事件
+const emit = defineEmits(['loading-change']);
+
+// 添加加载状态
+const isLoading = ref(false);
+
 /** 存放多个折线图容器的引用 */
 const lineRefs = ref<(HTMLElement | null)[]>([]);
 let lineChartInstances: echarts.ECharts[] = [];
@@ -70,96 +76,109 @@ watch(
 
 /** 加载 JSON 并渲染折线图 */
 async function loadAndRender() {
+  // 设置加载状态为true并通知父组件
+  isLoading.value = true;
+  emit('loading-change', true);
+  
+  try {
     // 清理旧图表
-  lineChartInstances.forEach(inst => inst.dispose());
-  lineChartInstances = [];
-  lineRefs.value = [];
-  loadedData.value = [];
+    lineChartInstances.forEach(inst => inst.dispose());
+    lineChartInstances = [];
+    lineRefs.value = [];
+    loadedData.value = [];
 
-  // 1. 判断要加载哪些文件
-const baseName = props.strategy; 
-const filesToTry = [
-    { filename: `${baseName}_result`, title: "传统策略预测" },
-    { filename: `${baseName}+Model_result`, title: "模型融合预测" }
-];
+    // 1. 判断要加载哪些文件
+    const baseName = props.strategy; 
+    const filesToTry = [
+        { filename: `${baseName}_result`, title: "传统策略预测" },
+        { filename: `${baseName}+Model_result`, title: "模型融合预测" }
+    ];
 
-// 2. 并行加载
-const results: Array<{ title: string; raw: any }> = [];
-  for (const f of filesToTry) {
-    try {
-      const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
-      const res = await axios.get(url);
-      results.push({ title: f.title, raw: res.data });
-      console.log(`文件 ${f.filename} 加载成功`);
-    } catch (err) {
-      console.warn(`文件 ${f.filename} 不存在或加载失败`, err);
-    }
-  }
-
-// 3. 计算起始日期
-const startDate = calcStartDate(props.timeRange);
-
-// 4. 解析 each file 的 data => lineData
-const newData: any[] = [];
-for (const r of results) {
-    if (!r.raw || !r.raw.data) continue;
-
-    const fullData = r.raw.data;
-    // 筛选 >= startDate
-    const filtered = fullData.filter((item: any) => item.date >= startDate);
-    let mode = 'none';
-    if (props.timeRange === '3Y') {
-      mode = 'month';
-    } else if (props.timeRange === '1Y') {
-      mode = 'week';
-    }
-    const aggregated = resampleData(filtered,mode);
-    
-    // 生成 lineData: [ [date, pred], ... ]
-    const lineData: [string, number][] = [];
-    const dateArr: string[] = [];
-    const markPoints: any[] = [];
-    aggregated.forEach((item: any) => {
-      const date = item.date.substring(0, 10);
-      const predVal = item.pred; // 预测值
-      lineData.push([date, predVal]);
-      dateArr.push(date);
-
-      if (item.signal == "buy") {
-        console.log("buy", date, predVal);
-        
-        markPoints.push({
-          name: "Buy",
-          coord: [date, predVal],
-          value: predVal,
-          itemStyle: { color: "red" },
-          label: { show: true, formatter: "Buy" } // 修改此处
-        });
-      } else if (item.signal === "sell") {
-        markPoints.push({
-          name: "Sell",
-          coord: [date, predVal],
-          value: predVal,
-          itemStyle: { color: "green" },
-          label: { show: true, formatter: "Sell" } // 修改此处
-        });
+    // 2. 并行加载
+    const results: Array<{ title: string; raw: any }> = [];
+    for (const f of filesToTry) {
+      try {
+        const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
+        const res = await axios.get(url);
+        results.push({ title: f.title, raw: res.data });
+        console.log(`文件 ${f.filename} 加载成功`);
+      } catch (err) {
+        console.warn(`文件 ${f.filename} 不存在或加载失败`, err);
       }
-    });
+    }
 
-    newData.push({
-      title: r.title,
-      lineData,
-      dates: dateArr,
-      markPoints
-    });
-}
-loadedData.value = newData;
+    // 3. 计算起始日期
+    const startDate = calcStartDate(props.timeRange);
 
-// 5. DOM更新后 => render
-nextTick(() => {
-    renderCharts();
-});
-    
+    // 4. 解析 each file 的 data => lineData
+    const newData: any[] = [];
+    for (const r of results) {
+        if (!r.raw || !r.raw.data) continue;
+
+        const fullData = r.raw.data;
+        // 筛选 >= startDate
+        const filtered = fullData.filter((item: any) => item.date >= startDate);
+        let mode = 'none';
+        if (props.timeRange === '3Y') {
+          mode = 'month';
+        } else if (props.timeRange === '1Y') {
+          mode = 'week';
+        }
+        const aggregated = resampleData(filtered,mode);
+        
+        // 生成 lineData: [ [date, pred], ... ]
+        const lineData: [string, number][] = [];
+        const dateArr: string[] = [];
+        const markPoints: any[] = [];
+        aggregated.forEach((item: any) => {
+          const date = item.date.substring(0, 10);
+          const predVal = item.pred; // 预测值
+          lineData.push([date, predVal]);
+          dateArr.push(date);
+
+          if (item.signal == "buy") {
+            console.log("buy", date, predVal);
+            
+            markPoints.push({
+              name: "Buy",
+              coord: [date, predVal],
+              value: predVal,
+              itemStyle: { color: "red" },
+              label: { show: true, formatter: "Buy" } // 修改此处
+            });
+          } else if (item.signal === "sell") {
+            markPoints.push({
+              name: "Sell",
+              coord: [date, predVal],
+              value: predVal,
+              itemStyle: { color: "green" },
+              label: { show: true, formatter: "Sell" } // 修改此处
+            });
+          }
+        });
+
+        newData.push({
+          title: r.title,
+          lineData,
+          dates: dateArr,
+          markPoints
+        });
+    }
+    loadedData.value = newData;
+
+    // 5. DOM更新后 => render
+    nextTick(() => {
+      renderCharts();
+      // 渲染完成后设置加载状态为false
+      isLoading.value = false;
+      emit('loading-change', false);
+    });
+  } catch (error) {
+    console.error("加载或渲染预测数据时出错:", error);
+    // 出错时也需要设置加载状态为false
+    isLoading.value = false;
+    emit('loading-change', false);
+  }
 }
 
 /** renderCharts: init ECharts & setOption for each file */

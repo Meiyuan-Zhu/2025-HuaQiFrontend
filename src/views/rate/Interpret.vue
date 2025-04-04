@@ -66,7 +66,7 @@ const updateChart = () => {
     
     if(res.data.code === 0){
       const data = res.data.data;
-      console.log(data);
+      // console.log(data);
 
       const nodeList: Node2[] = data.nodes;
       const linkList: Link[] = data.links;
@@ -152,6 +152,7 @@ const updateChart = () => {
           { 
             type: "graph",
             layout: "force",
+            zoom: 2.5,
             force: {
               repulsion: 500, // 增加节点斥力
               gravity: 0.5,
