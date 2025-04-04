@@ -4,6 +4,7 @@ import { ElSelect, ElOption, ElTooltip } from "element-plus";
 import "element-plus/es/components/select/style/css";
 import "element-plus/es/components/option/style/css";
 import "element-plus/es/components/tooltip/style/css";
+import "element-plus/es/components/loading/style/css";
 import BacktestKline from "./BacktestKline.vue"; 
 import BacktestPredLine from "./BacktestPredLine.vue";
 import BacktestNetWorth from "./BacktestNetWorth.vue";
@@ -243,6 +244,29 @@ const strategyDescription = computed(() => {
   
   return htmlDesc;
 });
+
+// 添加加载状态控制
+const klineLoading = ref(false);
+const predLineLoading = ref(false);
+const netWorthLoading = ref(false);
+const profitCardLoading = ref(false);
+
+// 添加处理加载状态的方法
+const handleKlineLoadingChange = (loading: boolean) => {
+  klineLoading.value = loading;
+};
+
+const handlePredLineLoadingChange = (loading: boolean) => {
+  predLineLoading.value = loading;
+};
+
+const handleNetWorthLoadingChange = (loading: boolean) => {
+  netWorthLoading.value = loading;
+};
+
+const handleProfitCardLoadingChange = (loading: boolean) => {
+  profitCardLoading.value = loading;
+};
 </script>
 <template>
   <div class="backtest-page" :data-theme="theme">
@@ -384,14 +408,24 @@ const strategyDescription = computed(() => {
               :currencyPair="selectedPair"
               :strategy="selectedStrategy"
               :timeRange="selectedTimeRange"
+              @loading-change="handleKlineLoadingChange"
             />
+            <div v-if="klineLoading" class="loading-overlay">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">加载K线数据中...</div>
+            </div>
           </div>
           <div class="chart-container main">
             <BacktestPredLine
               :currencyPair="selectedPair"
               :strategy="selectedStrategy"
               :timeRange="selectedTimeRange"
+              @loading-change="handlePredLineLoadingChange"
             />
+            <div v-if="predLineLoading" class="loading-overlay">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">加载预测数据中...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -407,14 +441,26 @@ const strategyDescription = computed(() => {
               :currencyPair="selectedPair"
               :strategy="selectedStrategy"
               :timeRange="selectedTimeRange"
+              :klineLoaded="!klineLoading"
+              :predLineLoaded="!predLineLoading"
+              @loading-change="handleProfitCardLoadingChange"
             />
+            <div v-if="profitCardLoading" class="loading-overlay">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">加载收益数据中...</div>
+            </div>
           </div>
           <div class="chart-container sub">
             <BacktestNetWorth
               :currencyPair="selectedPair"
               :strategy="selectedStrategy"
               :timeRange="selectedTimeRange"
+              @loading-change="handleNetWorthLoadingChange"
             />
+            <div v-if="netWorthLoading" class="loading-overlay">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">加载净值数据中...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1049,6 +1095,60 @@ const strategyDescription = computed(() => {
   
   .backtest-page[data-theme="dark"] .info-icon:hover {
     color: #60a5fa;
+  }
+}
+
+/* 添加加载动画样式 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  border-radius: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 深色模式下的加载动画样式 */
+@media (prefers-color-scheme: dark) {
+  .backtest-page[data-theme="dark"] .loading-overlay {
+    background: rgba(30, 41, 59, 0.8);
+  }
+  
+  .backtest-page[data-theme="dark"] .loading-spinner {
+    border-color: #334155;
+    border-top-color: #60a5fa;
+  }
+  
+  .backtest-page[data-theme="dark"] .loading-text {
+    color: #e2e8f0;
   }
 }
 </style>

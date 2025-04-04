@@ -1,6 +1,6 @@
 <template>
   <div class="kline-section">
-    <div v-if="selectedYields.length === 0" class="no-data-container">
+    <div v-if="selectedYields.length === 0 && !isLoading" class="no-data-container">
       <el-empty 
         description="暂无收益数据" 
         :image-size="120"
@@ -55,6 +55,12 @@
         </ul>
       </div>
     </div>
+    
+    <!-- 添加不透明的加载动画覆盖层 -->
+    <div v-if="isLoading" class="profit-loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">加载收益数据中...</div>
+    </div>
   </div>
 </template>
 
@@ -83,7 +89,17 @@ const props = defineProps<{
   currencyPair: string; // 例如 "中日"
   strategy: string;     // 例如 "Aberration"（注意：后续文件名为 "Aberration_result.json" 和 "Aberration+Model_result.json"）
   timeRange: string;    // 例如 "1W", "1M", "1S", "1Y", "3Y"
+  klineLoaded?: boolean; // 新增：K线数据是否已加载完成
+  predLineLoaded?: boolean; // 新增：预测线数据是否已加载完成
 }>();
+
+// 定义事件
+const emit = defineEmits(['loading-change']);
+
+// 添加加载状态
+const isLoading = ref(false);
+// 添加数据加载完成状态
+const dataLoaded = ref(false);
 
 // 定义时间跨度映射，将 timeRange 映射到 JSON 数据中的 period 字符串
 const periodMapping: Record<string, string> = {
@@ -126,36 +142,71 @@ function formatPercent(val: number): string {
 
 // 加载收益数据的函数：尝试加载两个 JSON 文件
 async function loadYieldData() {
-  yieldDataArray.value = []; // 清空旧数据
+  // 设置加载状态为true并通知父组件
+  isLoading.value = true;
+  emit('loading-change', true);
+  
+  try {
+    yieldDataArray.value = []; // 清空旧数据
 
-  // 根据策略构造文件名：传统文件和融合模型文件
-  // 假设传统文件格式为 "{strategy}_result.json"
-  // 融合模型文件格式为 "{strategy}+Model_result.json"
-  const baseName = props.strategy; // 如 "Aberration"
-  const filesToTry = [
-    { filename: `${baseName}_result`, title: "传统收益指标" },
-    { filename: `${baseName}+Model_result`, title: "模型融合收益指标" }
-  ];
+    // 根据策略构造文件名：传统文件和融合模型文件
+    // 假设传统文件格式为 "{strategy}_result.json"
+    // 融合模型文件格式为 "{strategy}+Model_result.json"
+    const baseName = props.strategy; // 如 "Aberration"
+    const filesToTry = [
+      { filename: `${baseName}_result`, title: "传统收益指标" },
+      { filename: `${baseName}+Model_result`, title: "模型融合收益指标" }
+    ];
 
-  for (const f of filesToTry) {
-    try {
-      const url = `http://118.178.184.189:6020/v1/backtest/proceeds?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
-      const res = await axios.get(url);
-      // 推入时使用返回数据（假设格式符合 YieldJson），同时覆盖 Strategy 字段为标题（或保留原值也可以）
-      yieldDataArray.value.push({
-        ...res.data,
-        Strategy: f.title
-      });
-      console.log(`加载成功：${f.filename}`, res.data);
-    } catch (err) {
-      console.warn(`文件 ${f.filename} 不存在或加载失败`, err);
+    for (const f of filesToTry) {
+      try {
+        const url = `http://118.178.184.189:6020/v1/backtest/proceeds?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
+        const res = await axios.get(url);
+        // 推入时使用返回数据（假设格式符合 YieldJson），同时覆盖 Strategy 字段为标题（或保留原值也可以）
+        yieldDataArray.value.push({
+          ...res.data,
+          Strategy: f.title
+        });
+        console.log(`加载成功：${f.filename}`, res.data);
+      } catch (err) {
+        console.warn(`文件 ${f.filename} 不存在或加载失败`, err);
+      }
     }
+    
+    // 标记数据已加载完成，但不立即结束加载状态
+    dataLoaded.value = true;
+    
+    // 检查是否应该结束加载状态
+    checkAndFinishLoading();
+  } catch (error) {
+    console.error("加载收益数据时出错:", error);
+    // 出错时也需要设置加载状态为false
+    isLoading.value = false;
+    emit('loading-change', false);
+  }
+}
+
+// 检查是否应该结束加载状态的函数
+function checkAndFinishLoading() {
+  // 如果K线和预测线都已加载完成，或者数据加载出错，则结束加载状态
+  if ((props.klineLoaded && props.predLineLoaded) || !dataLoaded.value) {
+    isLoading.value = false;
+    emit('loading-change', false);
   }
 }
 
 // 监听 props 的变化，并在变化时重新加载收益数据
-watch(() => props, () => {
+watch(() => [props.currencyPair, props.strategy, props.timeRange], () => {
+  dataLoaded.value = false;
   loadYieldData();
+}, { deep: true });
+
+// 监听 K线和预测线加载状态的变化
+watch(() => [props.klineLoaded, props.predLineLoaded], () => {
+  // 如果数据已加载完成，检查是否应该结束加载状态
+  if (dataLoaded.value) {
+    checkAndFinishLoading();
+  }
 }, { deep: true });
 
 onMounted(() => {
@@ -323,6 +374,59 @@ function getValueClass(value: number): string {
   
   .metrics-list {
     padding: 12px 16px;
+  }
+}
+
+/* 添加不透明的加载动画覆盖层样式 */
+.profit-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff; /* 完全不透明的白色背景 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #f59e0b; /* 使用橙色主题，与收益卡片一致 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 深色模式下的加载动画样式 */
+@media (prefers-color-scheme: dark) {
+  .profit-loading-overlay {
+    background: #1e293b; /* 深色模式下的背景 */
+  }
+  
+  .loading-spinner {
+    border-color: #334155;
+    border-top-color: #f59e0b;
+  }
+  
+  .loading-text {
+    color: #e2e8f0;
   }
 }
 </style>

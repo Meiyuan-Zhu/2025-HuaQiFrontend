@@ -4,7 +4,7 @@
         当 loadedData 中有N个文件，就渲染N个图表容器
         如果没数据则显示"暂无数据"
       -->
-      <div v-if="loadedData.length === 0" class="no-data-container">
+      <div v-if="loadedData.length === 0 && !isLoading" class="no-data-container">
         <el-empty 
           description="暂无K线数据" 
           :image-size="120"
@@ -52,6 +52,12 @@
     timeRange: string;    // e.g. "1M"
   }>();
   
+  // 定义事件
+  const emit = defineEmits(['loading-change']);
+  
+  // 添加加载状态
+  const isLoading = ref(false);
+  
   /** chartRefs: Ref数组，用来存放多个图表容器引用 */
   const chartRefs = ref<(HTMLElement | null)[]>([]);
   let chartInstances: echarts.ECharts[] = [];
@@ -83,6 +89,10 @@
   
   /** 根据props加载json文件,筛选数据,填充loadedData */
   async function loadAndRender() {
+    // 设置加载状态为true并通知父组件
+    isLoading.value = true;
+    emit('loading-change', true);
+  
     // 1) 清理旧图表
     chartInstances.forEach(inst => inst.dispose());
     chartInstances = [];
@@ -173,7 +183,14 @@
       // 8) DOM更新后渲染图表
       nextTick(() => {
         renderCharts();
+        // 渲染完成后设置加载状态为false
+        isLoading.value = false;
+        emit('loading-change', false);
       });
+    } else {
+      // 如果没有数据，也需要设置加载状态为false
+      isLoading.value = false;
+      emit('loading-change', false);
     }
   }
   
