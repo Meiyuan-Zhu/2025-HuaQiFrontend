@@ -403,6 +403,8 @@ const fullReportText = ref("");
 const textOutput = ref("");
 // 是否正在流式生成
 const isStreaming = ref(false);
+// 添加一个变量来控制流式生成的终止
+const shouldStopStreaming = ref(false);
 
 // 将 Markdown 转换为 HTML
 const reportHtml = computed(() => {
@@ -430,6 +432,7 @@ const timeSpanMap: Record<string, string> = {
 // 流式生成文本效果，添加类型声明
 const streamText = async (text: string) => {
   isStreaming.value = true;
+  shouldStopStreaming.value = false;
   textOutput.value = "";
   
   // 设置打字速度 (ms)
@@ -437,6 +440,11 @@ const streamText = async (text: string) => {
   
   // 逐字显示文本
   for (let i = 0; i < text.length; i++) {
+    // 检查是否应该停止流式生成
+    if (shouldStopStreaming.value) {
+      break;
+    }
+    
     textOutput.value += text[i];
     // 使用 await 和 setTimeout 创建延迟
     await new Promise(resolve => setTimeout(resolve, typingSpeed));
@@ -447,6 +455,13 @@ const streamText = async (text: string) => {
 
 // 生成报告
 const generateReport = async () => {
+  // 如果已经在生成中，则终止当前生成
+  if (isStreaming.value) {
+    shouldStopStreaming.value = true;
+    // 等待一小段时间确保流式生成已停止
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
   // 调用后端接口，生成AI报告
   const explanationRequest: ExplanationRequest = {
     currencyPair: currencyPairMap[currencyPair.to as keyof typeof currencyPairMap],
@@ -581,7 +596,7 @@ const downloadReport = async () => {
               {{ currencyPair.from + "/" + currencyPair.to }}
             </div>
           </div>
-          <div v-if="!showReport" class="rate-info">
+          <div class="rate-info">
             <el-button @click="generateReport" type="primary" color="#626aef">
               生成AI报告
             </el-button>
@@ -687,6 +702,7 @@ const downloadReport = async () => {
   min-height: 100vh;
   background: #f0f2f5;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .page-header {

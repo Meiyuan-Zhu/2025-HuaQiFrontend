@@ -124,6 +124,48 @@ let refreshTimer: number;
 // 添加主题状态
 const theme = ref('light'); // 默认使用浅色主题
 
+// 添加策略描述的计算属性
+const strategyDescription = computed(() => {
+  const rawDescriptions: Record<string, string> = {
+    "Aberration": "Aberration策略是一种基于价格波动的交易策略，利用价格与移动平均线的偏离程度来判断市场超买或超卖状态。当价格偏离移动平均线达到一定程度时，认为市场可能会回归，从而产生交易信号。",
+    "DualThrust": "DualThrust策略是一种区间突破策略，通过计算当日开盘价与前N日最高价、最低价的范围，设定上下轨，当价格突破上轨时做多，突破下轨时做空。该策略适合震荡行情中把握大波动。",
+    "MACD": "MACD（移动平均线收敛发散）策略是一种趋势跟踪指标，通过计算快速与慢速移动平均线之间的差异及其平均线，当MACD线与信号线交叉时产生买卖信号。适合识别中长期趋势。",
+    "Model": "Model策略是基于机器学习模型的预测策略，通过分析历史数据，训练模型来预测未来价格走势，并根据预测结果生成交易信号。该策略结合了多种技术指标和市场因素。",
+    "Momentum": "Momentum（动量）策略基于价格惯性原理，认为价格的上涨或下跌趋势会在一段时间内持续。该策略通过计算价格变化率，当动量指标超过阈值时产生交易信号。",
+    "Window": "Window（窗口）策略是一种基于时间窗口的交易策略，通过分析特定时间窗口内的价格模式和统计特性，识别重复出现的模式并据此生成交易信号。适合捕捉周期性波动。"
+  };
+  
+  // 将描述文本按照每行约15个字符进行格式化
+  const formatDescription = (text: string): string => {
+    const maxCharsPerLine = 15;
+    let result = '';
+    let currentLine = '';
+    
+    // 按词分割文本
+    const words = text.split(/(?<=[\s，。：；？！,.;:?!])/);
+    
+    for (const word of words) {
+      // 如果当前行加上新词超过限制，换行
+      if ((currentLine + word).length > maxCharsPerLine) {
+        result += currentLine + '\n';
+        currentLine = word;
+      } else {
+        currentLine += word;
+      }
+    }
+    
+    // 添加最后一行
+    if (currentLine) {
+      result += currentLine;
+    }
+    
+    return result;
+  };
+  
+  const description = rawDescriptions[selectedStrategy.value] || "暂无该策略的详细说明";
+  return formatDescription(description);
+});
+
 onMounted(() => {
   fetchCurrentRate();
   // 每60秒刷新一次数据
@@ -209,7 +251,25 @@ onMounted(() => {
 
         <!-- 策略选择卡片 -->
         <div class="control-card">
-          <div class="card-title">交易策略</div>
+          <div class="card-title">
+            交易策略
+            <el-tooltip
+              class="strategy-tooltip"
+              effect="light"
+              :content="strategyDescription"
+              placement="top-start"
+              :popper-class="'strategy-tooltip-popper'"
+            >
+              <i class="el-icon-question strategy-info-icon">
+                <svg viewBox="0 0 1024 1024" width="16" height="16">
+                  <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"></path>
+                  <path fill="currentColor" d="M512 336c-45.9 0-83.3 37.4-83.3 83.3v35.4c0 5.5 4.5 10 10 10h46.7c5.5 0 10-4.5 10-10v-35.4c0-9.2 7.5-16.7 16.7-16.7 9.2 0 16.7 7.5 16.7 16.7v35.4c0 5.5 4.5 10 10 10h46.7c5.5 0 10-4.5 10-10v-35.4c-.1-45.9-37.5-83.3-83.5-83.3z"></path>
+                  <path fill="currentColor" d="M445.8 548.3h130.5c5.5 0 10-4.5 10-10v-46.7c0-5.5-4.5-10-10-10H445.8c-5.5 0-10 4.5-10 10v46.7c0 5.5 4.5 10 10 10z"></path>
+                  <path fill="currentColor" d="M512 642c-22.9 0-41.7 18.7-41.7 41.7 0 22.9 18.7 41.7 41.7 41.7 22.9 0 41.7-18.7 41.7-41.7 0-23-18.7-41.7-41.7-41.7z"></path>
+                </svg>
+              </i>
+            </el-tooltip>
+          </div>
           <el-select
             v-model="selectedStrategy"
             placeholder="请选择策略"
@@ -300,6 +360,7 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(to bottom, #ffffff, #f8fafc) !important;
   padding: 24px 32px;
+  overflow-y: auto;
 }
 
 .page-header {
@@ -472,6 +533,22 @@ onMounted(() => {
   font-size: 14px;
   color: #64748b !important;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strategy-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.strategy-info-icon:hover {
+  color: #3b82f6;
 }
 
 .time-selector {
@@ -730,5 +807,35 @@ onMounted(() => {
 .change-value,
 .change-percent {
   transition: all 0.3s ease;
+}
+
+/* 自定义tooltip样式 */
+:deep(.strategy-tooltip-popper) {
+  max-width: 150px !important;
+  line-height: 1.8;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-size: 16px;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 修改Element Plus的tooltip样式 */
+:deep(.el-tooltip__popper) {
+  max-width: 150px !important;
+  width: 150px !important;
+}
+
+/* 深色模式下的tooltip样式 */
+@media (prefers-color-scheme: dark) {
+  .backtest-page[data-theme="dark"] :deep(.strategy-tooltip-popper) {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
 }
 </style>

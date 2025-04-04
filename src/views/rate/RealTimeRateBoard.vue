@@ -5,10 +5,18 @@
       <h1 class="page-title">今日汇率</h1>
     </el-header>
 
+    <!-- 加载动画 -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner">
+        <div class="spinner-circle"></div>
+        <div class="spinner-text">加载汇率数据中...</div>
+      </div>
+    </div>
+
     <!-- 卡片列表布局：替换表格 -->
-    <div class="card-list">
-          <!-- 单个汇率卡片（点击可查看趋势） -->
-          <div class="exact-card"
+    <div v-else class="card-list">
+      <!-- 单个汇率卡片（点击可查看趋势） -->
+      <div class="exact-card"
         v-for="item in filteredRates"
         :key="item.id"
         :class="{
@@ -17,44 +25,49 @@
           'trend-neutral': item.trend === 'neutral'
         }"
         @click="showTrend(item)">
-            <div class="card-content">
-              <!-- 左边：货币代码、中文货币名、日期 -->
-              <div class="left-part">
-                <div class="top-line">
-                  <span class="big-currency">{{ item.currency }}</span>
-                </div>
-                <div class="zh-currency">{{ item.currency_name }}</div>
-                <span class="date">{{ item.updateTime }}</span>
-              </div>
+        <!-- 添加国旗 -->
+        <div class="flag-container">
+          <span :class="`fi fi-${getCurrencyFlag(item.currency)}`"></span>
+        </div>
+        
+        <div class="card-content">
+          <!-- 左边：货币代码、中文货币名、日期 -->
+          <div class="left-part">
+            <div class="top-line">
+              <span class="big-currency">{{ item.currency }}</span>
+            </div>
+            <div class="zh-currency">{{ item.currency_name }}</div>
+            <span class="date">{{ item.updateTime }}</span>
+          </div>
 
-              <!-- 右边：买入价、卖出价、中间价 -->
-              <div class="right-part">
-                <div class="diff-row">
-                  <span class="big-diff">{{ item.diffVal }}</span>
-                  <span :class="{
-                    'arrow-up': item.trend === 'up',
-                    'arrow-down': item.trend === 'down',
-                    'arrow-neutral': item.trend === 'neutral'
-                  }">
-                    {{ item.trend === 'up' ? '⬆' : item.trend === 'down' ? '⬇' : '—' }}
-                  </span>
-                </div>
-                
-                <div class="price-line">
-                  <span class="price-label">买入价</span>
-                  <span class="price-value">{{ item.buy }}</span>
-                </div>
-                <div class="price-line">
-                  <span class="price-label">卖出价</span>
-                  <span class="price-value">{{ item.sell }}</span>
-                </div>
-                <div class="price-line">
-                  <span class="price-label">中间价</span>
-                  <span class="price-value">{{ item.mid }}</span>
-                </div>
-              </div>
+          <!-- 右边：买入价、卖出价、中间价 -->
+          <div class="right-part">
+            <div class="diff-row">
+              <span class="big-diff">{{ item.diffVal }}</span>
+              <span :class="{
+                'arrow-up': item.trend === 'up',
+                'arrow-down': item.trend === 'down',
+                'arrow-neutral': item.trend === 'neutral'
+              }">
+                {{ item.trend === 'up' ? '⬆' : item.trend === 'down' ? '⬇' : '—' }}
+              </span>
+            </div>
+            
+            <div class="price-line">
+              <span class="price-label">买入价</span>
+              <span class="price-value">{{ item.buy }}</span>
+            </div>
+            <div class="price-line">
+              <span class="price-label">卖出价</span>
+              <span class="price-value">{{ item.sell }}</span>
+            </div>
+            <div class="price-line">
+              <span class="price-label">中间价</span>
+              <span class="price-value">{{ item.mid }}</span>
             </div>
           </div>
+        </div>
+      </div>
     </div>
 
     <!-- 汇率趋势弹窗 -->
@@ -83,7 +96,17 @@
             </el-radio-button>
           </el-radio-group>
         </div>
-        <div class="chart-container">
+        
+        <!-- 趋势图加载动画 -->
+        <div v-if="isTrendLoading" class="chart-container loading-chart">
+          <div class="loading-spinner">
+            <div class="spinner-circle"></div>
+            <div class="spinner-text">加载趋势数据中...</div>
+          </div>
+        </div>
+        
+        <!-- 趋势图 -->
+        <div v-else class="chart-container">
           <v-chart class="trend-chart" :option="chartOption" autoresize />
         </div>
       </div>
@@ -197,7 +220,12 @@ const requestConfig = {
   }
 };
 
+// 添加加载状态
+const isLoading = ref(true);
+const isTrendLoading = ref(false);
+
 async function fetchAllForexList() {
+  isLoading.value = true; // 开始加载时设置为 true
   try {
     const res = await axios.get(ALL_FOREX_API, requestConfig);
     if (res.data && res.data.data) {
@@ -224,9 +252,14 @@ async function fetchAllForexList() {
       });
     } else {
       console.error("接口返回数据格式不符合预期", res.data);
+      ElMessage.error("获取汇率数据失败");
     }
   } catch (error) {
     console.error("获取外汇列表失败", error);
+    ElMessage.error("获取汇率数据失败，请稍后重试");
+  } finally {
+    // 无论成功或失败，都将加载状态设为 false
+    isLoading.value = false;
   }
 }
 onMounted(() => {
@@ -258,8 +291,19 @@ const showTrend = async (row: RateItem) => {
   fromCurrency.value = row.currency;
   toCurrency.value = baseCurrency.value;
   showTrendModal.value = true;
-  await fetchSingleForexTrend(periodOptions.find(opt => opt.value === currentPeriod.value)?.label || '周', row.currency_name);
-  updateTrendData(); // 更新图表
+  
+  // 设置趋势图加载状态
+  isTrendLoading.value = true;
+  
+  try {
+    await fetchSingleForexTrend(periodOptions.find(opt => opt.value === currentPeriod.value)?.label || '周', row.currency_name);
+    updateTrendData(); // 更新图表
+  } catch (error) {
+    console.error("获取趋势数据失败", error);
+    ElMessage.error("获取趋势数据失败，请稍后重试");
+  } finally {
+    isTrendLoading.value = false;
+  }
 };
 
 async function fetchSingleForexTrend(period: string, moneyCode: string) {
@@ -295,12 +339,22 @@ watch(currentPeriod, async (newPeriod) => {
     // 先清空图表数据
     clearChart();
     
-    const periodLabel = periodOptions.find(opt => opt.value === newPeriod)?.label || '周';
-    const currentCurrency = rateList.value.find(item => item.currency === fromCurrency.value);
-    if (currentCurrency) {
-      console.log("重新获取数据", periodLabel, currentCurrency.currency_name);
-      await fetchSingleForexTrend(periodLabel, currentCurrency.currency_name);
-      updateTrendData();
+    // 设置趋势图加载状态
+    isTrendLoading.value = true;
+    
+    try {
+      const periodLabel = periodOptions.find(opt => opt.value === newPeriod)?.label || '周';
+      const currentCurrency = rateList.value.find(item => item.currency === fromCurrency.value);
+      if (currentCurrency) {
+        console.log("重新获取数据", periodLabel, currentCurrency.currency_name);
+        await fetchSingleForexTrend(periodLabel, currentCurrency.currency_name);
+        updateTrendData();
+      }
+    } catch (error) {
+      console.error("获取趋势数据失败", error);
+      ElMessage.error("获取趋势数据失败，请稍后重试");
+    } finally {
+      isTrendLoading.value = false;
     }
   }
 });
@@ -310,6 +364,11 @@ watch(currentPeriod, async (newPeriod) => {
 const chartOption = ref({});
 
 const updateTrendData = () => {
+  // 首先对数据按日期进行排序
+  trendData.value.sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+  
   const dates = trendData.value.map(item => item.date);
   const rates = trendData.value.map(item => item.rate);
   
@@ -430,10 +489,44 @@ const updateTrendData = () => {
       }
     }]
   };
-
-  ElMessage.success("趋势数据已更新");
 }
 
+// 根据货币代码获取国旗代码
+const getCurrencyFlag = (currencyCode: string): string => {
+  const flagMap: Record<string, string> = {
+    'USD': 'us',
+    'EUR': 'eu',
+    'GBP': 'gb',
+    'JPY': 'jp',
+    'AUD': 'au',
+    'CAD': 'ca',
+    'CHF': 'ch',
+    'CNY': 'cn',
+    'HKD': 'hk',
+    'NZD': 'nz',
+    'SGD': 'sg',
+    'KRW': 'kr',
+    'THB': 'th',
+    'RUB': 'ru',
+    'INR': 'in',
+    'MYR': 'my',
+    'ZAR': 'za',
+    'MXN': 'mx',
+    'BRL': 'br',
+    'SEK': 'se',
+    'NOK': 'no',
+    'DKK': 'dk',
+    'TRY': 'tr',
+    'PLN': 'pl',
+    'IDR': 'id',
+    'PHP': 'ph',
+    'AED': 'ae',
+    'SAR': 'sa',
+    // 可以根据需要添加更多货币和国家代码
+  };
+  
+  return flagMap[currencyCode] || 'un'; // 如果找不到对应的国旗，返回联合国旗帜
+};
 
 </script>
 
@@ -503,6 +596,8 @@ const updateTrendData = () => {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.8);
+  animation: slideIn 0.4s ease-out;
+  animation-fill-mode: both;
 }
 
 /* 添加卡片悬浮效果 */
@@ -722,6 +817,18 @@ const updateTrendData = () => {
   justify-content: center;
   position: relative;
   z-index: 1;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 响应式优化 */
@@ -843,4 +950,104 @@ const updateTrendData = () => {
   justify-content: center;
   align-items: center;
 }
+
+/* 添加加载动画样式 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
+}
+
+.loading-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.spinner-circle {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(59, 130, 246, 0.1);
+  border-left-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-text {
+  color: #64748b;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 添加卡片加载动画 */
+.card-list {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 为每个卡片设置不同的延迟，创造序列动画效果 */
+.exact-card:nth-child(1) { animation-delay: 0.1s; }
+.exact-card:nth-child(2) { animation-delay: 0.15s; }
+.exact-card:nth-child(3) { animation-delay: 0.2s; }
+.exact-card:nth-child(4) { animation-delay: 0.25s; }
+.exact-card:nth-child(5) { animation-delay: 0.3s; }
+.exact-card:nth-child(6) { animation-delay: 0.35s; }
+.exact-card:nth-child(7) { animation-delay: 0.4s; }
+.exact-card:nth-child(8) { animation-delay: 0.45s; }
+.exact-card:nth-child(9) { animation-delay: 0.5s; }
+.exact-card:nth-child(10) { animation-delay: 0.55s; }
+/* 可以根据需要添加更多 */
+
+/* 添加国旗样式 */
+.flag-container {
+  position: absolute;
+  top: 20px;
+  right: 15px;
+  z-index: 2;
+}
+
+.flag-container .fi {
+  width: 60px;
+  height: 45px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.exact-card:hover .flag-container .fi {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 </style>
