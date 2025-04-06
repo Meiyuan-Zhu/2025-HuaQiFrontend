@@ -150,7 +150,14 @@ const updateChart = () => {
                 <div>含义: ${params.data.meaning || '暂无解释'}</div>
               `;
             } else {
-              return `权重: ${params.data.value}`;
+              const sourceNode = nodes[params.data.source].value;
+              const targetNode = nodes[params.data.target].value;
+              return `
+                <div style="font-weight:bold;margin-bottom:5px">
+                  <span style="color: #3b82f6;">${sourceNode}</span>对<span style="color: #3b82f6;">${targetNode}</span>的影响强度
+                </div>
+                <div>影响强度: ${params.data.value}</div>
+              `;
             }
           }
         },
@@ -222,7 +229,10 @@ const updateChart = () => {
         center: true,
       })
     }
-  })
+  }).catch((error) => {
+    console.error("获取数据时出错:", error);
+    ElMessage.error('获取数据失败，请重试');
+  });
 };
 
 watch([], () => {
