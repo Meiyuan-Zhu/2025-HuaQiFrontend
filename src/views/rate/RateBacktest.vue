@@ -10,6 +10,7 @@ import BacktestPredLine from "./BacktestPredLine.vue";
 import BacktestNetWorth from "./BacktestNetWorth.vue";
 import BacktestProfitCard from "./BacktestProfitCard.vue";
 import axios from "axios";
+import { API_BASE_URL } from "../../utils/api";
 
 const currencyPairs = [
   {
@@ -68,7 +69,7 @@ const currentRate = ref({
   changePercent: 0
 });
 
-const BASE_URL = 'http://118.178.184.189:6020';
+const BASE_URL = API_BASE_URL;
 const ALL_FOREX_API = `${BASE_URL}/v1/rate/get_all_forex`;
 
 // 添加请求配置

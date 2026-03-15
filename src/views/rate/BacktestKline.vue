@@ -42,6 +42,7 @@
   import axios from "axios";
   import * as echarts from "echarts";
   import { resampleData } from "./resampleData";
+  import { buildApiUrl } from "../../utils/api";
   
   /**
    * 父组件通过props传入
@@ -110,7 +111,7 @@
     const results: Array<{ title:string; raw: any}> = [];
     for (const f of filesToTry) {
       try {
-        const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
+        const url = buildApiUrl(`/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`);
         const res = await axios.get(url);
         if (res.data && res.data.data) {  // 添加数据有效性检查
           results.push({ title: f.title, raw: res.data });

@@ -1,5 +1,6 @@
 import {axios} from '../utils/request'
 import {PREDICTION_MODULE} from './_prefix'
+import { buildApiUrl } from '../utils/api'
 
 /*
 获取汇率预测结果
@@ -46,7 +47,7 @@ export interface Datum {
 }
 
 export const getExplanation = (explanationRequest: ExplanationRequest) => {
-    return axios.post(`http://118.178.184.189:6020/v1/prediction/get_analysis`, explanationRequest, { headers: { 'Content-Type': 'application/json' } })
+    return axios.post(buildApiUrl('/v1/prediction/get_analysis'), explanationRequest, { headers: { 'Content-Type': 'application/json' } })
         .then((res) => {
             if (res.data && res.data.data) {
                 res.data.data = res.data.data.replace(/&#10;/g, '\n');

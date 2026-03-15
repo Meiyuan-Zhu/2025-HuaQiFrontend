@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
+import { buildApiUrl } from "../../utils/api";
 
 // 定义收益数据类型
 interface YieldDataItem {
@@ -160,7 +161,7 @@ async function loadYieldData() {
 
     for (const f of filesToTry) {
       try {
-        const url = `http://118.178.184.189:6020/v1/backtest/proceeds?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
+        const url = buildApiUrl(`/v1/backtest/proceeds?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`);
         const res = await axios.get(url);
         // 推入时使用返回数据（假设格式符合 YieldJson），同时覆盖 Strategy 字段为标题（或保留原值也可以）
         yieldDataArray.value.push({

@@ -4,7 +4,6 @@ import {USER_MODULE} from './_prefix'
 
 export type User = {
     username: string,
-    password: string,
 }
 
 // 如果有"Vue: This may be converted to an async function"警告，可以不管

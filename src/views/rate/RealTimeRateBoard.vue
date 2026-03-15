@@ -118,6 +118,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import axios from "axios";
+import { API_BASE_URL } from "../../utils/api";
 
 // ECharts & Vue-ECharts
 import * as echarts from "echarts";
@@ -208,7 +209,7 @@ const filteredRates = computed(() => {
 });
 
 // ================== 接口调用 ================== //
-const BASE_URL = 'http://118.178.184.189:6020';
+const BASE_URL = API_BASE_URL;
 const ALL_FOREX_API = `${BASE_URL}/v1/rate/get_all_forex`;
 const SINGLE_FOREX_API = `${BASE_URL}/v1/rate/get_forex`;
 

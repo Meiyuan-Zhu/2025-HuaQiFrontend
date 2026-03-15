@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { API_BASE_URL } from './api'
 
 //创建一个axios的实例service
 const service = axios.create({
-    baseURL: 'http://118.178.184.189:6020',
+    baseURL: API_BASE_URL,
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json'

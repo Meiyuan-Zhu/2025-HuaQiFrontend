@@ -13,6 +13,7 @@ import {
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import MarkdownIt from 'markdown-it';
+import { buildApiUrl } from '../../utils/api';
 
 // 创建 markdown-it 实例并配置所有选项
 const md = new MarkdownIt({
@@ -524,7 +525,7 @@ const downloadReport = async () => {
     // 使用 axios 发送请求，确保正确设置 responseType
     const response = await axios({
       method: 'post',
-      url: 'http://118.178.184.189:6020/v1/prediction/get_analysis_pdf',
+      url: buildApiUrl('/v1/prediction/get_analysis_pdf'),
       data: requestData,
       headers: {
         'Content-Type': 'application/json',

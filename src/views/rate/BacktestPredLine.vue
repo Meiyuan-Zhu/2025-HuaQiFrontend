@@ -30,6 +30,7 @@ import { ref, watch, onMounted, nextTick } from "vue";
 import axios from "axios";
 import * as echarts from "echarts";
 import { resampleData } from "./resampleData";
+import { buildApiUrl } from "../../utils/api";
 
 /** 父组件通过 props 传入 currencyPair, strategy, timeRange */
 const props = defineProps<{
@@ -98,7 +99,7 @@ async function loadAndRender() {
     const results: Array<{ title: string; raw: any }> = [];
     for (const f of filesToTry) {
       try {
-        const url = `http://118.178.184.189:6020/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`;
+        const url = buildApiUrl(`/v1/backtest/result?currency_pair=${currencyPairMap[props.currencyPair]}&strategy=${f.filename}`);
         const res = await axios.get(url);
         results.push({ title: f.title, raw: res.data });
         console.log(`文件 ${f.filename} 加载成功`);

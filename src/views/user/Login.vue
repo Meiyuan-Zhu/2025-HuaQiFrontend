@@ -61,7 +61,7 @@ function handleLogin() {
       })
       
       // 保存用户信息
-      sessionStorage.setItem('user', JSON.stringify({username: username.value, password: password.value}))
+      sessionStorage.setItem('user', JSON.stringify({username: username.value}))
       
       // 跳转到首页
       router.push({path: "/"})

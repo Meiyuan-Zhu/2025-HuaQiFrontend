@@ -5,7 +5,7 @@ import { Message, Lock, SwitchButton } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { changePassword, User, userLogout } from '../../api/user';
 
-const user = ref<User>({username: '', password: ''})
+const user = ref<User>({username: ''})
 
 // 获取用户名的第一个字符作为头像
 const userInitial = computed(() => {
@@ -83,7 +83,6 @@ const updatePassword = () => {
           type: 'success',
           center: true,
         })
-        user.value.password = newPassword.value
         sessionStorage.setItem('user', JSON.stringify(user.value))
         
         // 清空输入框

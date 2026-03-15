@@ -1,4 +1,4 @@
-import {defineConfig} from 'vite'
+import {defineConfig, loadEnv} from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 // Element UI 自动导入支持
@@ -7,7 +7,11 @@ import Components from 'unplugin-vue-components/vite'
 import {ElementPlusResolver} from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, '.', '')
+    const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:6020'
+
+    return {
     plugins: [
         vue(),
         AutoImport({
@@ -21,11 +25,12 @@ export default defineConfig({
         open: true,
         proxy: {
             '/api': {
-                target: 'http://118.178.184.189:6020',
+                target: apiBaseUrl,
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             }
         }
     },
     base: './'
+    }
 })
